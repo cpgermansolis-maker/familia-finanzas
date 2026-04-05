@@ -447,15 +447,28 @@ async function syncFromSheets() {
   syncing = false;
 }
 
-// Todas las llamadas usan GET con parámetros para evitar CORS
-async function sheetsCall(action, tab, data) {
-  let url = SCRIPT_URL + '?action=' + encodeURIComponent(action);
-  if (tab)  url += '&tab='  + encodeURIComponent(tab);
-  if (data) url += '&data=' + encodeURIComponent(JSON.stringify(data));
-  const res = await fetch(url);
-  const text = await res.text();
-  try { return JSON.parse(text); }
-  catch(e) { throw new Error('Respuesta inválida del servidor. Verifica que el script esté implementado correctamente.'); }
+// JSONP para evitar bloqueos CORS de Google Apps Script
+function sheetsCall(action, tab, data) {
+  return new Promise((resolve, reject) => {
+    const cbName = 'ff_cb_' + Math.random().toString(36).slice(2);
+    let url = SCRIPT_URL + '?callback=' + cbName + '&action=' + encodeURIComponent(action);
+    if (tab)  url += '&tab='  + encodeURIComponent(tab);
+    if (data) url += '&data=' + encodeURIComponent(JSON.stringify(data));
+    const script = document.createElement('script');
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error('Tiempo de espera agotado. Verifica la URL del script.'));
+    }, 15000);
+    window[cbName] = (result) => { cleanup(); resolve(result); };
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+    script.onerror = () => { cleanup(); reject(new Error('No se pudo conectar con el script.')); };
+    script.src = url;
+    document.head.appendChild(script);
+  });
 }
 
 // Alias para compatibilidad
