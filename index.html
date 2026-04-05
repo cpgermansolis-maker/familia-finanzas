@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FamiliaFinanzas</title>
+<meta name="description" content="Control de ingresos y gastos familiares">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-primary:#ffffff;--bg-secondary:#f5f5f4;--bg-tertiary:#e8e8e6;
+  --text-primary:#1a1a1a;--text-secondary:#6b6b6b;--text-tertiary:#9ca3af;
+  --border-light:rgba(0,0,0,0.1);--border-med:rgba(0,0,0,0.18);
+  --radius-md:8px;--radius-lg:12px;
+  --green:#1D9E75;--green-light:#E1F5EE;--green-dark:#085041;
+  --red:#D85A30;--red-light:#FAECE7;--red-dark:#712B13;
+  --blue:#378ADD;--blue-light:#E6F1FB;--blue-dark:#0C447C;
+  --amber:#BA7517;--amber-light:#FAEEDA;--amber-dark:#633806;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg-primary:#1e1e1e;--bg-secondary:#2a2a2a;--bg-tertiary:#111111;
+    --text-primary:#f0f0f0;--text-secondary:#a0a0a0;--text-tertiary:#666;
+    --border-light:rgba(255,255,255,0.1);--border-med:rgba(255,255,255,0.18);
+    --green-light:#0a2e20;--red-light:#2e1208;--blue-light:#0a1f35;--amber-light:#2a1e06;
+  }
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg-tertiary);color:var(--text-primary);font-size:14px}
+.app{display:flex;min-height:100vh}
+/* SIDEBAR */
+.sidebar{width:210px;background:var(--bg-primary);border-right:0.5px solid var(--border-light);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+.logo{padding:16px;border-bottom:0.5px solid var(--border-light)}
+.logo-t{font-size:15px;font-weight:600;color:var(--green)}
+.logo-s{font-size:10px;color:var(--text-secondary);margin-top:2px}
+.ns{font-size:10px;color:var(--text-tertiary);padding:12px 16px 3px;text-transform:uppercase;letter-spacing:.06em}
+.ni{display:flex;align-items:center;gap:9px;padding:9px 16px;font-size:13px;cursor:pointer;color:var(--text-secondary);border:none;background:none;width:100%;text-align:left;transition:background .15s}
+.ni:hover{background:var(--bg-secondary);color:var(--text-primary)}
+.ni.active{background:var(--bg-secondary);color:var(--text-primary);font-weight:500;border-left:2px solid var(--green);padding-left:14px}
+.ni svg{width:15px;height:15px;flex-shrink:0}
+.profiles{padding:12px;margin-top:auto;border-top:0.5px solid var(--border-light)}
+.pl{font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
+.pb{display:block;width:100%;padding:7px 10px;font-size:12px;border:0.5px solid var(--border-light);border-radius:var(--radius-md);background:none;color:var(--text-secondary);cursor:pointer;margin-bottom:5px;text-align:left;transition:all .15s}
+.pb:hover{background:var(--bg-secondary);color:var(--text-primary)}
+.pb.ap{background:var(--green-light);color:var(--green-dark);border-color:var(--green);font-weight:500}
+/* MAIN */
+.main-wrap{flex:1;display:flex;flex-direction:column;margin-left:210px;min-width:0}
+.pbanner{background:var(--green-light);border-bottom:0.5px solid var(--green);padding:8px 20px;font-size:12px;color:var(--green-dark);display:flex;align-items:center;justify-content:space-between;display:none}
+.topbar{background:var(--bg-primary);border-bottom:0.5px solid var(--border-light);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.tb-title{font-size:15px;font-weight:500}
+.tb-badge{font-size:11px;color:var(--text-secondary);background:var(--bg-secondary);padding:4px 10px;border-radius:20px}
+.content{padding:18px 20px;flex:1}
+/* CARDS */
+.card{background:var(--bg-primary);border:0.5px solid var(--border-light);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:12px}
+.sg{display:grid;gap:10px;margin-bottom:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:600px){.g2,.g3,.g4{grid-template-columns:1fr}}
+.sc{background:var(--bg-secondary);border-radius:var(--radius-md);padding:12px 14px}
+.sl{font-size:11px;color:var(--text-secondary);margin-bottom:4px}
+.sv{font-size:20px;font-weight:500}
+.bc{background:var(--bg-primary);border:0.5px solid var(--border-light);border-radius:var(--radius-lg);padding:13px 15px}
+.bcs{font-size:11px;color:var(--text-secondary);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.bca{font-size:21px;font-weight:500;line-height:1.1}
+.bcm{font-size:11px;color:var(--text-secondary);margin-top:4px}
+.gn{color:var(--green)}.rd{color:var(--red)}.bl{color:var(--blue)}
+/* SECTION TITLES */
+.st{font-size:13px;font-weight:500;margin-bottom:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tip-btn{width:16px;height:16px;border-radius:50%;border:0.5px solid var(--border-med);background:none;cursor:pointer;font-size:10px;color:var(--text-secondary);flex-shrink:0;display:inline-flex;align-items:center;justify-content:center}
+.tooltip-box{background:var(--bg-secondary);border:0.5px solid var(--border-med);border-radius:var(--radius-md);padding:10px 13px;font-size:12px;color:var(--text-secondary);line-height:1.6;margin-bottom:10px}
+/* TX ROWS */
+.tx-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border-light)}
+.tx-item:last-child{border-bottom:none}
+.tx-ic{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;font-weight:500}
+.tx-inf{flex:1;min-width:0}
+.tx-d{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-m{font-size:11px;color:var(--text-secondary);margin-top:1px}
+.tx-a{font-size:13px;font-weight:500;flex-shrink:0}
+/* BARS */
+.bar-w{margin-bottom:9px}
+.bar-l{display:flex;justify-content:space-between;font-size:12px;color:var(--text-secondary);margin-bottom:4px}
+.bar-t{height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden}
+.bar-f{height:100%;border-radius:3px;transition:width .4s}
+/* FORMS */
+.tabs{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap}
+.tab{flex:1;padding:8px 6px;font-size:12px;border:0.5px solid var(--border-light);border-radius:var(--radius-md);background:none;cursor:pointer;color:var(--text-secondary);min-width:80px}
+.tab.sel-e{background:var(--red-light);color:var(--red-dark);border-color:var(--red);font-weight:500}
+.tab.sel-i{background:var(--green-light);color:var(--green-dark);border-color:var(--green);font-weight:500}
+.tab.sel-t{background:var(--blue-light);color:var(--blue-dark);border-color:var(--blue);font-weight:500}
+.tab.sel-rc{background:var(--amber-light);color:var(--amber-dark);border-color:var(--amber);font-weight:500}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.fl{font-size:12px;color:var(--text-secondary)}
+select,input[type=text],input[type=number],input[type=date],textarea{
+  width:100%;font-size:13px;padding:8px 10px;border:0.5px solid var(--border-med);
+  border-radius:var(--radius-md);background:var(--bg-primary);color:var(--text-primary);
+  font-family:inherit;outline:none}
+select:focus,input:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(29,158,117,.15)}
+textarea{resize:vertical;min-height:60px}
+.btn-p{background:var(--green);color:#fff;border:none;border-radius:var(--radius-md);padding:9px 18px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit}
+.btn-p:hover{background:var(--green-dark)}
+.btn-s{background:none;color:var(--text-secondary);border:0.5px solid var(--border-med);border-radius:var(--radius-md);padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit}
+.btn-s:hover{background:var(--bg-secondary)}
+.btn-sm{background:none;color:var(--green);border:0.5px solid var(--green);border-radius:var(--radius-md);padding:4px 9px;font-size:11px;cursor:pointer}
+.btn-sm:hover{background:var(--green-light)}
+.btn-danger{background:none;color:var(--red);border:0.5px solid var(--red-light);border-radius:var(--radius-md);padding:4px 9px;font-size:11px;cursor:pointer}
+.btn-danger:hover{background:var(--red-light)}
+/* PERIOD BUTTONS */
+.period-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.per-btn{padding:6px 14px;font-size:12px;border:0.5px solid var(--border-light);border-radius:20px;background:none;cursor:pointer;color:var(--text-secondary)}
+.per-btn.sel{background:var(--green);color:#fff;border-color:var(--green);font-weight:500}
+/* BUDGET */
+.week-nav{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.week-nav button{padding:5px 12px;font-size:12px;border:0.5px solid var(--border-light);border-radius:var(--radius-md);background:none;cursor:pointer;color:var(--text-secondary)}
+.week-nav button:disabled{opacity:.4;cursor:default}
+.week-nav span{font-size:13px;font-weight:500;flex:1;text-align:center}
+.bud-card{background:var(--bg-primary);border:0.5px solid var(--border-light);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:10px}
+.prog-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text-secondary);margin-bottom:4px}
+.prog-track{height:8px;background:var(--bg-secondary);border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;border-radius:4px;transition:width .3s}
+.reclass-row{background:var(--amber-light);border:0.5px solid var(--amber);border-radius:var(--radius-md);padding:8px 11px;margin-top:6px;font-size:11px;color:var(--amber-dark)}
+/* CONFIG */
+.cfg-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid var(--border-light)}
+.cfg-row:last-child{border-bottom:none}
+.cond-row{background:var(--bg-secondary);border-radius:var(--radius-md);padding:7px 11px;margin-bottom:5px;font-size:12px;display:flex;justify-content:space-between;align-items:center}
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);align-items:center;justify-content:center;z-index:300}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg-primary);border-radius:var(--radius-lg);padding:20px;width:min(320px,90vw);border:0.5px solid var(--border-med)}
+.modal-t{font-size:14px;font-weight:500;margin-bottom:14px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+/* MOBILE TOPBAR */
+.mob-menu{display:none;background:none;border:none;cursor:pointer;padding:4px;color:var(--text-primary)}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main-wrap{margin-left:0}
+  .mob-menu{display:flex;align-items:center;justify-content:center}
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:99}
+  .sidebar-overlay.open{display:block}
+}
+.info-box{border-radius:var(--radius-md);padding:10px 12px;font-size:12px;margin-bottom:10px;line-height:1.5}
+.info-green{background:var(--green-light);color:var(--green-dark)}
+.info-amber{background:var(--amber-light);color:var(--amber-dark)}
+.empty{font-size:12px;color:var(--text-secondary);padding:12px 0;text-align:center}
+</style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<div class="app">
+<nav class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-t">FamiliaFinanzas</div>
+    <div class="logo-s">v2.0 · Control familiar</div>
+  </div>
+  <div class="ns">Principal</div>
+  <button class="ni active" id="nav-dashboard" onclick="nav('dashboard')">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="1" width="5" height="5" rx="1"/><rect x="8" y="1" width="5" height="5" rx="1"/><rect x="1" y="8" width="5" height="5" rx="1"/><rect x="8" y="8" width="5" height="5" rx="1"/></svg>
+    Dashboard
+  </button>
+  <button class="ni" id="nav-nuevo" onclick="nav('nuevo')">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="7" r="6"/><line x1="7" y1="4.5" x2="7" y2="9.5"/><line x1="4.5" y1="7" x2="9.5" y2="7"/></svg>
+    Nuevo movimiento
+  </button>
+  <button class="ni" id="nav-historial" onclick="nav('historial')">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="10" height="10" rx="1"/><line x1="4" y1="5" x2="10" y2="5"/><line x1="4" y1="7.5" x2="10" y2="7.5"/><line x1="4" y1="10" x2="7" y2="10"/></svg>
+    Historial
+  </button>
+  <div class="ns">Análisis</div>
+  <button class="ni" id="nav-presupuestos" onclick="nav('presupuestos')">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="4" width="12" height="9" rx="1"/><path d="M4 4V3a3 3 0 016 0v1"/><line x1="7" y1="7" x2="7" y2="10"/></svg>
+    Presupuestos
+  </button>
+  <button class="ni" id="nav-fuentes" onclick="nav('fuentes')">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="3.5" cy="7" r="2.5"/><circle cx="10.5" cy="7" r="2.5"/><line x1="6" y1="7" x2="8" y2="7"/></svg>
+    Por fuente
+  </button>
+  <button class="ni" id="nav-reportes" onclick="nav('reportes')">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><polyline points="1,11 4,6.5 7,8.5 10,3.5 13,5.5"/><line x1="1" y1="13" x2="13" y2="13"/></svg>
+    Reportes
+  </button>
+  <div class="ns">Sistema</div>
+  <button class="ni" id="nav-config" onclick="nav('config')">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="7" r="2"/><path d="M7 1v2M7 11v2M1 7h2M11 7h2M2.9 2.9l1.4 1.4M9.7 9.7l1.4 1.4M2.9 11.1l1.4-1.4M9.7 4.3l1.4-1.4"/></svg>
+    Configuración
+  </button>
+  <div class="profiles">
+    <div class="pl">Ver como</div>
+    <button class="pb" id="btn-mama" onclick="setProfile('mama')">Mamá (solo lectura)</button>
+    <button class="pb" id="btn-papa" onclick="setProfile('papa')">Papá (solo lectura)</button>
+    <button class="pb" id="btn-admin" style="display:none" onclick="setProfile('admin')">Salir de vista</button>
+  </div>
+</nav>
+
+<div class="main-wrap">
+  <div class="pbanner" id="pbanner">
+    <span id="pbanner-txt"></span>
+    <button onclick="setProfile('admin')" style="background:none;border:none;color:var(--green-dark);font-size:12px;cursor:pointer;text-decoration:underline">Salir</button>
+  </div>
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="mob-menu" onclick="openSidebar()" aria-label="Menú">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="2" y1="5" x2="18" y2="5"/><line x1="2" y1="10" x2="18" y2="10"/><line x1="2" y1="15" x2="18" y2="15"/></svg>
+      </button>
+      <span class="tb-title" id="tb-title">Dashboard</span>
+    </div>
+    <span class="tb-badge" id="tb-badge">Administrador</span>
+  </div>
+  <div class="content" id="mainContent"></div>
+</div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal" id="modalBox"></div>
+</div>
+
+<script>
+const SK={src:'ff2_sources',cat:'ff2_cats',tx:'ff2_txs',bud:'ff2_budgets'};
+const DEF_SRC=[{id:'s1',name:'Mamá (EE.UU.)',color:'#1D9E75',desc:'Envíos desde Estados Unidos'},{id:'s2',name:'Papá',color:'#378ADD',desc:'Aportaciones desde otra ciudad'},{id:'s3',name:'Personal',color:'#BA7517',desc:'Mis ingresos propios'}];
+const DEF_CAT=[{id:'c1',name:'Hogar',type:'expense'},{id:'c2',name:'Alimentación',type:'expense'},{id:'c3',name:'Transporte',type:'expense'},{id:'c4',name:'Salud',type:'expense'},{id:'c5',name:'Educación',type:'expense'},{id:'c6',name:'Servicios',type:'expense'},{id:'c7',name:'Ropa',type:'expense'},{id:'c8',name:'Entretenimiento',type:'expense'},{id:'c9',name:'Personal',type:'expense'},{id:'c10',name:'Otros gastos',type:'expense'},{id:'c11',name:'Envío',type:'income'},{id:'c12',name:'Sueldo',type:'income'},{id:'c13',name:'Freelance',type:'income'},{id:'c14',name:'Otros ingresos',type:'income'}];
+
+let sources=[],cats=[],txs=[],budgets=[];
+let profile='admin',currentView='dashboard',txType='expense',reportPeriod='month';
+let tooltipVisible={},weekOffset=0;
+
+function load(){
+  try{sources=JSON.parse(localStorage.getItem(SK.src))||DEF_SRC;}catch{sources=DEF_SRC;}
+  try{cats=JSON.parse(localStorage.getItem(SK.cat))||DEF_CAT;}catch{cats=DEF_CAT;}
+  try{txs=JSON.parse(localStorage.getItem(SK.tx))||[];}catch{txs=[];}
+  try{budgets=JSON.parse(localStorage.getItem(SK.bud))||[];}catch{budgets=[];}
+  render();
+}
+function save(){
+  localStorage.setItem(SK.src,JSON.stringify(sources));
+  localStorage.setItem(SK.cat,JSON.stringify(cats));
+  localStorage.setItem(SK.tx,JSON.stringify(txs));
+  localStorage.setItem(SK.bud,JSON.stringify(budgets));
+}
+function uid(){return Math.random().toString(36).slice(2,9);}
+function fmt(n){return new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:2}).format(n);}
+function fmtDate(d){return new Date(d+'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'short'});}
+function today(){return new Date().toISOString().split('T')[0];}
+
+function getWeekKey(offset){
+  const d=new Date();d.setDate(d.getDate()-d.getDay()+1+(offset*7));
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+  const d2=new Date(d);d2.setDate(d2.getDate()+6);
+  const m2=String(d2.getMonth()+1).padStart(2,'0'),day2=String(d2.getDate()).padStart(2,'0');
+  const wn=getISOWeek(d);
+  return{key:`${y}-W${wn}`,label:`${day}/${m} – ${day2}/${m2}/${y}`,start:`${y}-${m}-${day}`,end:`${d2.getFullYear()}-${m2}-${day2}`};
+}
+function getISOWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));t.setUTCDate(t.getUTCDate()+4-(t.getUTCDay()||7));const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil((((t-y)/86400000)+1)/7);}
+
+function getBal(sid){
+  let b=0;
+  for(const t of txs){
+    if(t.type==='income'&&t.srcId===sid)b+=t.amount;
+    if(t.type==='expense'&&t.srcId===sid)b-=t.amount;
+    if(t.type==='transfer'&&t.srcId===sid)b-=t.amount;
+    if(t.type==='transfer'&&t.destId===sid)b+=t.amount;
+  }
+  return b;
+}
+function getBudgetSpent(bid){return txs.filter(t=>t.type==='expense'&&t.budId===bid).reduce((a,t)=>a+t.amount,0);}
+function getBudgetReclassIn(bid){return txs.filter(t=>t.type==='reclass'&&t.toBudId===bid).reduce((a,t)=>a+t.amount,0);}
+function getBudgetReclassOut(bid){return txs.filter(t=>t.type==='reclass'&&t.fromBudId===bid).reduce((a,t)=>a+t.amount,0);}
+function getBudgetAvail(b){return b.amount+getBudgetReclassIn(b.id)-getBudgetReclassOut(b.id)-getBudgetSpent(b.id);}
+
+function src(id){return sources.find(s=>s.id===id)||{name:'?',color:'#888',desc:''};}
+function cat(id){return cats.find(c=>c.id===id)||{name:'?'};}
+function bud(id){return budgets.find(b=>b.id===id)||{name:'?'};}
+
+function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sidebarOverlay').classList.add('open');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('open');}
+
+function toggleTip(key){tooltipVisible[key]=!tooltipVisible[key];render();}
+
+function nav(view){
+  if(profile!=='admin'&&['nuevo','config'].includes(view))return;
+  currentView=view;closeSidebar();
+  document.querySelectorAll('.ni').forEach(el=>el.classList.remove('active'));
+  const nb=document.getElementById('nav-'+view);if(nb)nb.classList.add('active');
+  const titles={dashboard:'Dashboard',nuevo:'Nuevo movimiento',historial:'Historial',presupuestos:'Presupuestos',fuentes:'Por fuente',reportes:'Reportes',config:'Configuración'};
+  document.getElementById('tb-title').textContent=titles[view]||view;
+  render();
+}
+
+function setProfile(p){
+  profile=p;
+  const banner=document.getElementById('pbanner');
+  const badge=document.getElementById('tb-badge');
+  const bad=document.getElementById('btn-admin');
+  const bma=document.getElementById('btn-mama');
+  const bpa=document.getElementById('btn-papa');
+  if(p==='mama'){
+    banner.style.display='flex';document.getElementById('pbanner-txt').textContent='Vista de Mamá — solo lectura';
+    badge.textContent='Mamá';bad.style.display='block';bma.classList.add('ap');bpa.classList.remove('ap');nav('dashboard');
+  }else if(p==='papa'){
+    banner.style.display='flex';document.getElementById('pbanner-txt').textContent='Vista de Papá — solo lectura';
+    badge.textContent='Papá';bad.style.display='block';bpa.classList.add('ap');bma.classList.remove('ap');nav('dashboard');
+  }else{
+    banner.style.display='none';badge.textContent='Administrador';bad.style.display='none';
+    bma.classList.remove('ap');bpa.classList.remove('ap');render();
+  }
+}
+
+function render(){
+  const el=document.getElementById('mainContent');
+  if(currentView==='dashboard')el.innerHTML=renderDashboard();
+  else if(currentView==='nuevo')el.innerHTML=renderNuevo();
+  else if(currentView==='historial')el.innerHTML=renderHistorial();
+  else if(currentView==='presupuestos')el.innerHTML=renderPresupuestos();
+  else if(currentView==='fuentes')el.innerHTML=renderFuentes();
+  else if(currentView==='reportes')el.innerHTML=renderReportes();
+  else if(currentView==='config')el.innerHTML=renderConfig();
+  bindAfterRender();
+}
+
+function tipHTML(key,text){
+  const vis=tooltipVisible[key];
+  return`<button class="tip-btn" onclick="toggleTip('${key}')" title="Ayuda">?</button>${vis?`<div class="tooltip-box" style="margin-top:8px;width:100%">${text}</div>`:''}`;
+}
+
+function txRow(t){
+  const s=src(t.srcId);
+  const c=t.categoryId?cat(t.categoryId):{name:''};
+  const b=t.budId?bud(t.budId):{name:''};
+  let icon='↓',ibg='var(--red-light)',icol='var(--red-dark)',acol='var(--red)',asign='-';
+  if(t.type==='income'){icon='↑';ibg='var(--green-light)';icol='var(--green-dark)';acol='var(--green)';asign='+';}
+  if(t.type==='transfer'){icon='⇄';ibg='var(--blue-light)';icol='var(--blue-dark)';acol='var(--blue)';asign='⇄';}
+  if(t.type==='reclass'){icon='↺';ibg='var(--amber-light)';icol='var(--amber-dark)';acol='var(--amber)';asign='↺';}
+  let meta=t.type==='transfer'?`${s.name} → ${src(t.destId).name}`:t.type==='reclass'?`${bud(t.fromBudId).name} → ${bud(t.toBudId).name}`:`${s.name}${c.name&&c.name!=='?'?' · '+c.name:''}${b.name&&b.name!=='?'?' ['+b.name+']':''}`;
+  return`<div class="tx-item"><div class="tx-ic" style="background:${ibg};color:${icol}">${icon}</div><div class="tx-inf"><div class="tx-d">${t.desc||c.name||'Sin descripción'}</div><div class="tx-m">${fmtDate(t.date)} · ${meta}</div></div><div class="tx-a" style="color:${acol}">${['⇄','↺'].includes(asign)?'':asign}${fmt(t.amount)}</div></div>`;
+}
+
+function renderDashboard(){
+  const fs=profile==='mama'?'s1':profile==='papa'?'s2':null;
+  const totalInc=txs.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0);
+  const totalExp=txs.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0);
+  const recent=[...txs].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,6);
+  const recentF=fs?recent.filter(t=>t.srcId===fs||t.destId===fs):recent;
+  const srcsShow=fs?sources.filter(s=>s.id===fs):sources;
+
+  const balCards=srcsShow.map(s=>{
+    const bal=getBal(s.id);
+    const inc=txs.filter(t=>t.type==='income'&&t.srcId===s.id).reduce((a,t)=>a+t.amount,0);
+    const exp=txs.filter(t=>t.type==='expense'&&t.srcId===s.id).reduce((a,t)=>a+t.amount,0);
+    return`<div class="bc" style="border-left:3px solid ${s.color}"><div class="bcs"><span class="dot" style="background:${s.color}"></span>${s.name}</div><div class="bca ${bal>=0?'gn':'rd'}">${fmt(bal)}</div><div class="bcm">↑ ${fmt(inc)} &nbsp; ↓ ${fmt(exp)}</div></div>`;
+  }).join('');
+
+  const catExp={};
+  const txForCat=fs?txs.filter(t=>t.type==='expense'&&t.srcId===fs):txs.filter(t=>t.type==='expense');
+  txForCat.forEach(t=>{catExp[t.categoryId]=(catExp[t.categoryId]||0)+t.amount;});
+  const topCats=Object.entries(catExp).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const maxC=topCats[0]?.[1]||1;
+  const catBars=topCats.map(([cid,amt])=>{
+    const cn=cat(cid).name;const pct=Math.round((amt/maxC)*100);
+    return`<div class="bar-w"><div class="bar-l"><span>${cn}</span><span>${fmt(amt)}</span></div><div class="bar-t"><div class="bar-f" style="width:${pct}%;background:var(--red)"></div></div></div>`;
+  }).join('')||'<div class="empty">Sin gastos registrados aún</div>';
+
+  const tip1=tipHTML('dash-bal','Cada tarjeta muestra el dinero disponible de una fuente de ingreso. El número grande es el balance actual: lo que entró menos lo que se gastó. Si aparece en rojo, esa fuente está en negativo.');
+  const tip2=tipHTML('dash-cat','Esta gráfica muestra en qué categorías se ha gastado más dinero. La barra más larga corresponde al mayor gasto. Sirve para identificar rápidamente a dónde va el dinero del hogar.');
+
+  return`
+  <div class="sg g${fs?'1':'3'}" style="margin-bottom:12px">${balCards}</div>
+  ${!fs?`<div class="sg g3"><div class="sc"><div class="sl">Balance total</div><div class="sv ${totalInc-totalExp>=0?'gn':'rd'}">${fmt(totalInc-totalExp)}</div></div><div class="sc"><div class="sl">Total ingresos</div><div class="sv gn">${fmt(totalInc)}</div></div><div class="sc"><div class="sl">Total gastos</div><div class="sv rd">${fmt(totalExp)}</div></div></div>`:''}
+  <div class="sg g2">
+    <div class="card">
+      <div class="st">Últimos movimientos ${profile==='admin'?`<button class="btn-p" style="margin-left:auto;font-size:11px;padding:5px 12px" onclick="nav('nuevo')">+ Nuevo</button>`:''}${tip1}</div>
+      ${tooltipVisible['dash-bal']?`<div class="tooltip-box">Muestra los movimientos más recientes. Ve al Historial para filtrar por fuente o tipo de movimiento.</div>`:''}
+      ${recentF.length?recentF.map(t=>txRow(t)).join(''):'<div class="empty">Sin movimientos aún. Registra tu primer ingreso.</div>'}
+    </div>
+    <div class="card">
+      <div class="st">Gastos por categoría ${tip2}</div>
+      ${tooltipVisible['dash-cat']?`<div class="tooltip-box">Cada barra representa una categoría de gasto. La longitud indica qué tan grande es ese gasto comparado con los demás. El monto exacto aparece a la derecha.</div>`:''}
+      ${catBars}
+    </div>
+  </div>`;
+}
+
+function renderNuevo(){
+  if(profile!=='admin')return'<div class="empty" style="padding:40px">No tienes permisos para registrar movimientos.</div>';
+  const expCats=cats.filter(c=>c.type==='expense');
+  const incCats=cats.filter(c=>c.type==='income');
+  const srcOpts=sources.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  const expOpts=expCats.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const incOpts=incCats.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const wk=getWeekKey(0);
+  const weekBuds=budgets.filter(b=>b.weekKey===wk.key);
+  const budOpts=weekBuds.map(b=>{const s=src(b.srcId);const av=getBudgetAvail(b);return`<option value="${b.id}">[${s.name}] ${b.name} (${fmt(av)} disp.)</option>`;}).join('');
+
+  let extra='';
+  if(txType==='expense'){
+    extra=`<div class="sg g2"><div class="fg"><label class="fl">Categoría</label><select id="f-cat">${expOpts}</select></div><div class="fg"><label class="fl">Fuente que paga</label><select id="f-src">${srcOpts}</select></div></div>
+    ${weekBuds.length?`<div class="fg"><label class="fl">Vincular a presupuesto (opcional)</label><select id="f-bud"><option value="">— Sin presupuesto —</option>${budOpts}</select></div>`:'<input type="hidden" id="f-bud" value="">'}`;
+  }else if(txType==='income'){
+    extra=`<div class="sg g2"><div class="fg"><label class="fl">Categoría</label><select id="f-cat">${incOpts}</select></div><div class="fg"><label class="fl">Fuente que recibe</label><select id="f-src">${srcOpts}</select></div></div>
+    <div class="info-box info-green"><strong>¿Viene etiquetado?</strong> Activa la opción de abajo si quieres crear un presupuesto con este dinero para un gasto específico.</div>
+    <div class="fg"><label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="f-tagged"> Crear presupuesto con este dinero</label></div>
+    <div id="tagged-fields" style="display:none"><div class="fg"><label class="fl">Nombre del presupuesto (ej. "Para servicios")</label><input type="text" id="f-budname" placeholder="Para..."></div></div>`;
+  }else if(txType==='transfer'){
+    extra=`<div class="sg g2"><div class="fg"><label class="fl">Fuente origen</label><select id="f-src">${srcOpts}</select></div><div class="fg"><label class="fl">Fuente destino</label><select id="f-dest">${srcOpts}</select></div></div>`;
+  }else if(txType==='reclass'){
+    const allBuds=budgets.map(b=>{const s=src(b.srcId);const av=getBudgetAvail(b);return`<option value="${b.id}">[${s.name}] ${b.name} · ${b.weekKey} (disp: ${fmt(av)})</option>`;}).join('');
+    extra=`<div class="info-box info-amber">Una reclasificación mueve dinero sobrante de un presupuesto a otro sin crear un ingreso nuevo. La fuente original siempre queda registrada.</div>
+    <div class="sg g2"><div class="fg"><label class="fl">Presupuesto origen (con sobrante)</label><select id="f-frombud">${allBuds||'<option>Sin presupuestos</option>'}</select></div><div class="fg"><label class="fl">Presupuesto destino</label><select id="f-tobud">${allBuds||'<option>Sin presupuestos</option>'}</select></div></div>`;
+  }
+
+  return`<div class="card" style="max-width:520px">
+    <div class="tabs">
+      <button class="tab ${txType==='expense'?'sel-e':''}" onclick="txType='expense';render()">Gasto</button>
+      <button class="tab ${txType==='income'?'sel-i':''}" onclick="txType='income';render()">Ingreso</button>
+      <button class="tab ${txType==='transfer'?'sel-t':''}" onclick="txType='transfer';render()">Transferencia</button>
+      <button class="tab ${txType==='reclass'?'sel-rc':''}" onclick="txType='reclass';render()">Reclasificación</button>
+    </div>
+    <div class="sg g2">
+      <div class="fg"><label class="fl">Monto (MXN)</label><input type="number" id="f-amount" placeholder="0.00" min="0" step="0.01"></div>
+      <div class="fg"><label class="fl">Fecha</label><input type="date" id="f-date" value="${today()}"></div>
+    </div>
+    ${extra}
+    <div class="fg"><label class="fl">Descripción</label><input type="text" id="f-desc" placeholder="Descripción..."></div>
+    <div class="fg" style="margin-bottom:14px"><label class="fl">Notas (opcional)</label><textarea id="f-notes" placeholder="Notas adicionales..."></textarea></div>
+    <div style="display:flex;gap:8px"><button class="btn-p" onclick="saveTx()">Guardar movimiento</button><button class="btn-s" onclick="nav('dashboard')">Cancelar</button></div>
+  </div>`;
+}
+
+function bindAfterRender(){
+  const tf=document.getElementById('f-tagged');
+  if(tf){tf.addEventListener('change',()=>{const tf2=document.getElementById('tagged-fields');if(tf2)tf2.style.display=tf.checked?'block':'none';});}
+}
+
+function saveTx(){
+  const amount=parseFloat(document.getElementById('f-amount')?.value);
+  const date=document.getElementById('f-date')?.value;
+  const desc=document.getElementById('f-desc')?.value||'';
+  const notes=document.getElementById('f-notes')?.value||'';
+  if(!amount||amount<=0){alert('Ingresa un monto válido');return;}
+  if(!date){alert('Selecciona una fecha');return;}
+  const t={id:uid(),type:txType,amount,date,desc,notes};
+  if(txType==='transfer'){
+    t.srcId=document.getElementById('f-src')?.value;
+    t.destId=document.getElementById('f-dest')?.value;
+    if(t.srcId===t.destId){alert('La fuente origen y destino deben ser diferentes');return;}
+  }else if(txType==='reclass'){
+    t.fromBudId=document.getElementById('f-frombud')?.value;
+    t.toBudId=document.getElementById('f-tobud')?.value;
+    if(!t.fromBudId||!t.toBudId){alert('Selecciona los presupuestos');return;}
+    if(t.fromBudId===t.toBudId){alert('Los presupuestos deben ser diferentes');return;}
+    const fb=budgets.find(b=>b.id===t.fromBudId);
+    t.srcId=fb?.srcId;
+  }else{
+    t.srcId=document.getElementById('f-src')?.value;
+    t.categoryId=document.getElementById('f-cat')?.value;
+    t.budId=document.getElementById('f-bud')?.value||null;
+    if(txType==='income'){
+      const tagged=document.getElementById('f-tagged')?.checked;
+      if(tagged){
+        const budname=document.getElementById('f-budname')?.value.trim();
+        if(!budname){alert('Escribe el nombre del presupuesto');return;}
+        const wk=getWeekKey(0);
+        const nb={id:uid(),name:budname,srcId:t.srcId,amount,weekKey:wk.key,weekLabel:wk.label,notes};
+        budgets.push(nb);t.budId=nb.id;
+      }
+    }
+  }
+  txs.push(t);save();nav('dashboard');
+}
+
+function renderHistorial(){
+  const fs=profile==='mama'?'s1':profile==='papa'?'s2':null;
+  let list=[...txs].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(fs)list=list.filter(t=>t.srcId===fs||t.destId===fs);
+  const srcF=profile==='admin'?`<select id="hf-src" style="font-size:12px;padding:5px 8px;width:auto"><option value="">Todas las fuentes</option>${sources.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select>`:'';
+  return`<div style="display:flex;gap:7px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+    ${srcF}
+    <select id="hf-type" style="font-size:12px;padding:5px 8px;width:auto"><option value="">Todos los tipos</option><option value="income">Ingresos</option><option value="expense">Gastos</option><option value="transfer">Transferencias</option><option value="reclass">Reclasificaciones</option></select>
+    <span style="font-size:12px;color:var(--text-secondary)">${list.length} registros</span>
+    ${profile==='admin'?`<button class="btn-p" style="margin-left:auto;font-size:11px;padding:5px 12px" onclick="nav('nuevo')">+ Nuevo</button>`:''}
+  </div>
+  <div class="card" id="hist-list">${list.length?list.map(t=>txRow(t)).join(''):'<div class="empty">Sin movimientos registrados</div>'}</div>`;
+}
+
+function filterHistorial(){
+  const sv=document.getElementById('hf-src')?.value||'';
+  const tv=document.getElementById('hf-type')?.value||'';
+  let list=[...txs].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(sv)list=list.filter(t=>t.srcId===sv||t.destId===sv);
+  if(tv)list=list.filter(t=>t.type===tv);
+  const el=document.getElementById('hist-list');
+  if(el)el.innerHTML=list.length?list.map(t=>txRow(t)).join(''):'<div class="empty">Sin resultados</div>';
+}
+
+function renderPresupuestos(){
+  const fs=profile==='mama'?'s1':profile==='papa'?'s2':null;
+  const wk=getWeekKey(weekOffset);
+  const weekBuds=fs?budgets.filter(b=>b.weekKey===wk.key&&b.srcId===fs):budgets.filter(b=>b.weekKey===wk.key);
+  const tip=tipHTML('bud-main','Los presupuestos son montos reservados para un gasto específico. La barra verde muestra cuánto queda disponible. La roja, cuánto ya se gastó. Si el gasto supera el presupuesto, la barra se vuelve completamente roja.');
+  const totalBud=weekBuds.reduce((a,b)=>a+b.amount,0);
+  const totalSpent=weekBuds.reduce((a,b)=>a+getBudgetSpent(b.id),0);
+  const totalAvail=weekBuds.reduce((a,b)=>a+getBudgetAvail(b),0);
+  const budsHTML=weekBuds.length?weekBuds.map(b=>{
+    const s=src(b.srcId);
+    const spent=getBudgetSpent(b.id);
+    const rIn=getBudgetReclassIn(b.id);
+    const rOut=getBudgetReclassOut(b.id);
+    const effective=b.amount+rIn-rOut;
+    const avail=effective-spent;
+    const pct=effective>0?Math.min(Math.round((spent/effective)*100),100):0;
+    const over=spent>effective;
+    const reclasses=txs.filter(t=>t.type==='reclass'&&(t.fromBudId===b.id||t.toBudId===b.id));
+    return`<div class="bud-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+        <div><div style="font-size:13px;font-weight:500">${b.name}</div><div style="font-size:11px;color:var(--text-secondary);display:flex;align-items:center;gap:5px;margin-top:2px"><span class="dot" style="background:${s.color}"></span>${s.name} · ${b.weekLabel||wk.label}</div></div>
+        <div style="text-align:right"><div style="font-size:13px;font-weight:500;color:${avail>=0?'var(--green)':'var(--red)'}">${fmt(avail)} disp.</div>${profile==='admin'?`<button class="btn-sm" style="margin-top:4px" onclick="openReclass('${b.id}')">Reasignar sobrante</button>`:''}</div>
+      </div>
+      <div class="prog-labels"><span>Presupuesto: ${fmt(b.amount)}${rIn>0?` + ${fmt(rIn)} recibido`:''}${rOut>0?` - ${fmt(rOut)} reasignado`:''}</span><span>${pct}% gastado</span></div>
+      <div class="prog-track"><div class="prog-fill" style="width:${pct}%;background:${over?'var(--red)':'var(--green)'}"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-secondary);margin-top:4px"><span>Gastado: ${fmt(spent)}</span><span>Efectivo disponible: ${fmt(effective)}</span></div>
+      ${reclasses.map(r=>`<div class="reclass-row">↺ ${bud(r.fromBudId).name} → ${bud(r.toBudId).name} · ${fmt(r.amount)} · ${fmtDate(r.date)}</div>`).join('')}
+    </div>`;
+  }).join(''):`<div class="empty" style="padding:20px">Sin presupuestos para esta semana.${profile==='admin'?' Registra un ingreso etiquetado para crear uno.':''}</div>`;
+
+  return`
+  <div class="week-nav">
+    <button onclick="weekOffset--;render()">← Anterior</button>
+    <span>${wk.label}</span>
+    <button onclick="weekOffset++;render()" ${weekOffset>=0?'disabled':''}>Siguiente →</button>
+  </div>
+  ${weekBuds.length?`<div class="sg g3"><div class="sc"><div class="sl">Presupuestado</div><div class="sv">${fmt(totalBud)}</div></div><div class="sc"><div class="sl">Gastado</div><div class="sv rd">${fmt(totalSpent)}</div></div><div class="sc"><div class="sl">Disponible</div><div class="sv ${totalAvail>=0?'gn':'rd'}">${fmt(totalAvail)}</div></div></div>`:''}
+  <div class="st">Presupuestos de la semana ${tip}</div>
+  ${tooltipVisible['bud-main']?`<div class="tooltip-box">Cada bloque es un presupuesto creado con dinero etiquetado. La barra muestra qué porcentaje ya se gastó. Si queda sobrante puedes reasignarlo a otro presupuesto con el botón correspondiente.</div>`:''}
+  ${budsHTML}`;
+}
+
+function renderFuentes(){
+  const fs=profile==='mama'?'s1':profile==='papa'?'s2':null;
+  const srcsShow=fs?sources.filter(s=>s.id===fs):sources;
+  const tip=tipHTML('fuentes-main','Cada sección muestra el estado completo de una fuente de dinero: cuánto entró, cuánto se gastó y cuánto se transfirió. El balance es el dinero que queda disponible en esa fuente.');
+  return`<div class="st" style="margin-bottom:10px">${tip}</div>
+  ${tooltipVisible['fuentes-main']?`<div class="tooltip-box">Una fuente es el origen del dinero (Mamá, Papá o Personal). Revisa aquí el detalle completo de cada fuente.</div>`:''}
+  ${srcsShow.map(s=>{
+    const bal=getBal(s.id);
+    const inc=txs.filter(t=>t.type==='income'&&t.srcId===s.id).reduce((a,t)=>a+t.amount,0);
+    const exp=txs.filter(t=>t.type==='expense'&&t.srcId===s.id).reduce((a,t)=>a+t.amount,0);
+    const trO=txs.filter(t=>t.type==='transfer'&&t.srcId===s.id).reduce((a,t)=>a+t.amount,0);
+    const trI=txs.filter(t=>t.type==='transfer'&&t.destId===s.id).reduce((a,t)=>a+t.amount,0);
+    const wk=getWeekKey(0);
+    const wkBuds=budgets.filter(b=>b.srcId===s.id&&b.weekKey===wk.key);
+    const recents=[...txs].filter(t=>t.srcId===s.id||t.destId===s.id).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,4);
+    return`<div class="card" style="border-left:3px solid ${s.color}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div><div style="font-size:14px;font-weight:500;display:flex;align-items:center;gap:7px"><span class="dot" style="background:${s.color}"></span>${s.name}</div><div style="font-size:11px;color:var(--text-secondary);margin-top:2px">${s.desc}</div></div>
+        <div style="text-align:right"><div style="font-size:21px;font-weight:500;color:${bal>=0?'var(--green)':'var(--red)'}">${fmt(bal)}</div><div style="font-size:11px;color:var(--text-secondary)">Balance actual</div></div>
+      </div>
+      <div class="sg g4" style="margin-bottom:10px">
+        <div class="sc"><div class="sl">Ingresos</div><div style="font-size:14px;font-weight:500;color:var(--green)">${fmt(inc)}</div></div>
+        <div class="sc"><div class="sl">Gastos</div><div style="font-size:14px;font-weight:500;color:var(--red)">${fmt(exp)}</div></div>
+        <div class="sc"><div class="sl">Enviado</div><div style="font-size:14px;font-weight:500;color:var(--blue)">${fmt(trO)}</div></div>
+        <div class="sc"><div class="sl">Recibido</div><div style="font-size:14px;font-weight:500;color:var(--blue)">${fmt(trI)}</div></div>
+      </div>
+      ${wkBuds.length?`<div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;font-weight:500">Presupuestos esta semana:</div>${wkBuds.map(b=>{const av=getBudgetAvail(b);const sp=getBudgetSpent(b.id);const pct=b.amount>0?Math.min(Math.round((sp/b.amount)*100),100):0;return`<div class="cond-row"><span>${b.name}</span><div style="display:flex;align-items:center;gap:8px"><div style="width:60px;height:4px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${pct>=100?'var(--red)':'var(--green)'}"></div></div><span style="font-size:11px;color:${av>=0?'var(--green)':'var(--red)'}">${fmt(av)}</span></div></div>`;}).join('')}`:''}
+      <div style="border-top:0.5px solid var(--border-light);padding-top:8px;margin-top:6px">${recents.length?recents.map(t=>txRow(t)).join(''):'<div class="empty">Sin movimientos</div>'}</div>
+    </div>`;
+  }).join('')}`;
+}
+
+function renderReportes(){
+  const fs=profile==='mama'?'s1':profile==='papa'?'s2':null;
+  let txList=fs?txs.filter(t=>t.srcId===fs||t.destId===fs):txs;
+  const now=new Date();
+  let filtered=txList;
+  if(reportPeriod==='week'){const wa=new Date(now);wa.setDate(wa.getDate()-7);filtered=txList.filter(t=>new Date(t.date)>=wa);}
+  else if(reportPeriod==='month'){filtered=txList.filter(t=>{const d=new Date(t.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});}
+  else if(reportPeriod==='year'){filtered=txList.filter(t=>new Date(t.date).getFullYear()===now.getFullYear());}
+
+  const inc=filtered.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0);
+  const exp=filtered.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0);
+  const reclasses=filtered.filter(t=>t.type==='reclass');
+  const catExp={};
+  filtered.filter(t=>t.type==='expense').forEach(t=>{catExp[t.categoryId]=(catExp[t.categoryId]||0)+t.amount;});
+  const topCats=Object.entries(catExp).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const maxC=topCats[0]?.[1]||1;
+
+  const tip1=tipHTML('rep-src','Compara cuánto ingresó y cuánto se gastó por fuente. El porcentaje de uso indica qué parte del ingreso fue gastado en el período seleccionado.');
+  const tip2=tipHTML('rep-cats','Muestra en qué categorías se fue el dinero en el período. La barra más larga es el gasto más alto.');
+  const tip3=tipHTML('rep-reclass','Las reclasificaciones son movimientos internos entre presupuestos. No son gastos nuevos: es el mismo dinero cambiando de propósito, con trazabilidad completa.');
+
+  const srcsShow=fs?sources.filter(s=>s.id===fs):sources;
+  const srcRows=srcsShow.map(s=>{
+    const sInc=filtered.filter(t=>t.type==='income'&&t.srcId===s.id).reduce((a,t)=>a+t.amount,0);
+    const sExp=filtered.filter(t=>t.type==='expense'&&t.srcId===s.id).reduce((a,t)=>a+t.amount,0);
+    const pct=sInc>0?Math.min(Math.round((sExp/sInc)*100),100):0;
+    return`<div style="padding:9px 0;border-bottom:0.5px solid var(--border-light)">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span class="dot" style="background:${s.color}"></span><span style="font-size:13px;font-weight:500">${s.name}</span></div>
+      <div style="display:flex;gap:14px;font-size:12px;margin-bottom:5px;flex-wrap:wrap"><span class="gn">↑ ${fmt(sInc)}</span><span class="rd">↓ ${fmt(sExp)}</span><span style="color:${sInc-sExp>=0?'var(--green)':'var(--red)'};font-weight:500">= ${fmt(sInc-sExp)}</span><span style="color:var(--text-secondary)">${pct}% usado</span></div>
+      ${sInc>0?`<div class="bar-t"><div class="bar-f" style="width:${pct}%;background:var(--red)"></div></div>`:''}
+    </div>`;
+  }).join('');
+
+  return`
+  <div class="period-row">
+    ${['week','month','year','all'].map(p=>`<button class="per-btn ${reportPeriod===p?'sel':''}" onclick="reportPeriod='${p}';render()">${{week:'Esta semana',month:'Este mes',year:'Este año',all:'Todo'}[p]}</button>`).join('')}
+  </div>
+  <div class="sg g3"><div class="sc"><div class="sl">Ingresos del período</div><div class="sv gn">${fmt(inc)}</div></div><div class="sc"><div class="sl">Gastos del período</div><div class="sv rd">${fmt(exp)}</div></div><div class="sc"><div class="sl">Balance del período</div><div class="sv ${inc-exp>=0?'gn':'rd'}">${fmt(inc-exp)}</div></div></div>
+  <div class="sg g2">
+    <div class="card"><div class="st">Por fuente ${tip1}</div>${tooltipVisible['rep-src']?`<div class="tooltip-box">Cada fila es una fuente. La barra muestra qué porcentaje del ingreso se usó en gastos. Si supera el 100%, se gastó más de lo que entró.</div>`:''}${srcRows||'<div class="empty">Sin datos</div>'}</div>
+    <div class="card"><div class="st">Por categoría ${tip2}</div>${tooltipVisible['rep-cats']?`<div class="tooltip-box">Compara cuánto se gastó en cada categoría. La barra más larga es la que más dinero consumió.</div>`:''}${topCats.length?topCats.map(([cid,amt])=>{const cn=cat(cid).name;const pct=Math.round((amt/maxC)*100);return`<div class="bar-w"><div class="bar-l"><span>${cn}</span><span>${fmt(amt)}</span></div><div class="bar-t"><div class="bar-f" style="width:${pct}%;background:var(--red)"></div></div></div>`;}).join(''):'<div class="empty">Sin gastos en este período</div>'}</div>
+  </div>
+  ${reclasses.length?`<div class="card"><div class="st">Reclasificaciones ${tip3}</div>${tooltipVisible['rep-reclass']?`<div class="tooltip-box">Una reclasificación es cuando el sobrante de un presupuesto (ej. "Para comida") se redirige a otro (ej. "Para ropa"). El dinero no desaparece: solo cambia de propósito conservando su fuente original.</div>`:''}${reclasses.map(r=>`<div class="reclass-row">↺ ${bud(r.fromBudId).name} → ${bud(r.toBudId).name} · ${fmt(r.amount)} · ${fmtDate(r.date)} · ${r.desc}</div>`).join('')}</div>`:''}`;
+}
+
+function renderConfig(){
+  if(profile!=='admin')return'<div class="empty" style="padding:40px">Sin acceso a configuración.</div>';
+  return`<div class="sg g2">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="st" style="margin:0">Fuentes de dinero</div><button class="btn-p" style="font-size:11px;padding:5px 12px" onclick="openModal('src')">+ Agregar</button></div>
+      ${sources.map(s=>`<div class="cfg-row"><div style="display:flex;align-items:center;gap:8px"><span class="dot" style="background:${s.color}"></span><span style="font-size:13px">${s.name}</span></div><button class="btn-danger" onclick="delSrc('${s.id}')">Eliminar</button></div>`).join('')}
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="st" style="margin:0">Categorías</div><button class="btn-p" style="font-size:11px;padding:5px 12px" onclick="openModal('cat')">+ Agregar</button></div>
+      <div style="font-size:10px;color:var(--text-tertiary);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Gastos</div>
+      ${cats.filter(c=>c.type==='expense').map(c=>`<div class="cfg-row"><span style="font-size:13px">${c.name}</span><button class="btn-danger" onclick="delCat('${c.id}')">Eliminar</button></div>`).join('')}
+      <div style="font-size:10px;color:var(--text-tertiary);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.05em">Ingresos</div>
+      ${cats.filter(c=>c.type==='income').map(c=>`<div class="cfg-row"><span style="font-size:13px">${c.name}</span><button class="btn-danger" onclick="delCat('${c.id}')">Eliminar</button></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function openModal(type){
+  let html='';
+  if(type==='src'){
+    html=`<div class="modal-t">Nueva fuente</div>
+    <div class="fg"><label class="fl">Nombre</label><input type="text" id="m-name" placeholder="Nombre de la fuente"></div>
+    <div class="fg"><label class="fl">Descripción</label><input type="text" id="m-desc" placeholder="Descripción breve"></div>
+    <div class="fg"><label class="fl">Color identificador</label><input type="color" id="m-color" value="#1D9E75" style="width:50px;height:32px;padding:2px;cursor:pointer;border-radius:var(--radius-md)"></div>
+    <div class="modal-actions"><button class="btn-s" onclick="closeModal()">Cancelar</button><button class="btn-p" onclick="addSrc()">Guardar</button></div>`;
+  }else{
+    html=`<div class="modal-t">Nueva categoría</div>
+    <div class="fg"><label class="fl">Nombre</label><input type="text" id="m-name" placeholder="Nombre de la categoría"></div>
+    <div class="fg"><label class="fl">Tipo</label><select id="m-type"><option value="expense">Gasto</option><option value="income">Ingreso</option></select></div>
+    <div class="modal-actions"><button class="btn-s" onclick="closeModal()">Cancelar</button><button class="btn-p" onclick="addCat()">Guardar</button></div>`;
+  }
+  document.getElementById('modalBox').innerHTML=html;
+  document.getElementById('modalBg').classList.add('open');
+}
+function closeModal(){document.getElementById('modalBg').classList.remove('open');}
+
+function openReclass(fromBudId){
+  const fb=budgets.find(b=>b.id===fromBudId);
+  const avail=getBudgetAvail(fb);
+  const others=budgets.filter(b=>b.id!==fromBudId);
+  const opts=others.map(b=>`<option value="${b.id}">${b.name} (${b.weekKey})</option>`).join('');
+  document.getElementById('modalBox').innerHTML=`
+    <div class="modal-t">Reasignar sobrante</div>
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">Sobrante disponible en "<strong>${fb.name}</strong>": <strong style="color:var(--green)">${fmt(avail)}</strong></div>
+    <div class="fg"><label class="fl">Monto a reasignar</label><input type="number" id="rc-amount" placeholder="0.00" max="${avail}" step="0.01"></div>
+    <div class="fg"><label class="fl">Presupuesto destino</label><select id="rc-dest">${opts||'<option>Sin otros presupuestos</option>'}</select></div>
+    <div class="fg"><label class="fl">Motivo</label><input type="text" id="rc-desc" placeholder="Motivo de la reasignación"></div>
+    <div class="modal-actions"><button class="btn-s" onclick="closeModal()">Cancelar</button><button class="btn-p" onclick="saveReclass('${fromBudId}')">Confirmar</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function saveReclass(fromBudId){
+  const amount=parseFloat(document.getElementById('rc-amount')?.value);
+  const toBudId=document.getElementById('rc-dest')?.value;
+  const desc=document.getElementById('rc-desc')?.value||'Reasignación';
+  const fb=budgets.find(b=>b.id===fromBudId);
+  const avail=getBudgetAvail(fb);
+  if(!amount||amount<=0){alert('Ingresa un monto válido');return;}
+  if(amount>avail){alert(`No puedes reasignar más del sobrante: ${fmt(avail)}`);return;}
+  if(!toBudId){alert('Selecciona el presupuesto destino');return;}
+  txs.push({id:uid(),type:'reclass',amount,date:today(),desc,srcId:fb.srcId,fromBudId,toBudId,notes:''});
+  save();closeModal();render();
+}
+
+function addSrc(){
+  const name=document.getElementById('m-name')?.value.trim();
+  const desc=document.getElementById('m-desc')?.value.trim()||'';
+  const color=document.getElementById('m-color')?.value||'#1D9E75';
+  if(!name){alert('Ingresa un nombre');return;}
+  sources.push({id:uid(),name,desc,color});
+  save();closeModal();render();
+}
+function delSrc(id){if(!confirm('¿Eliminar esta fuente?'))return;sources=sources.filter(s=>s.id!==id);save();render();}
+function addCat(){
+  const name=document.getElementById('m-name')?.value.trim();
+  const type=document.getElementById('m-type')?.value;
+  if(!name){alert('Ingresa un nombre');return;}
+  cats.push({id:uid(),name,type});
+  save();closeModal();render();
+}
+function delCat(id){if(!confirm('¿Eliminar esta categoría?'))return;cats=cats.filter(c=>c.id!==id);save();render();}
+
+document.addEventListener('change',e=>{
+  if(e.target.id==='hf-src'||e.target.id==='hf-type')filterHistorial();
+});
+
+load();
+</script>
+</body>
+</html>
