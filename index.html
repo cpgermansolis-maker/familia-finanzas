@@ -429,13 +429,12 @@ async function syncFromSheets() {
   syncing = true;
   setSyncStatus('syncing');
   try {
-    const res = await sheetsGet('readAll');
+    const res = await sheetsCall('readAll', null, null);
     if (!res.ok) throw new Error(res.error);
     sources  = res.data.sources      || [];
     cats     = res.data.categories   || [];
     txs      = res.data.transactions || [];
     budgets  = res.data.budgets      || [];
-    // Convertir amounts a número
     txs      = txs.map(t  => ({ ...t,  amount: parseFloat(t.amount)||0  }));
     budgets  = budgets.map(b => ({ ...b, amount: parseFloat(b.amount)||0 }));
     saveToCache();
@@ -448,24 +447,23 @@ async function syncFromSheets() {
   syncing = false;
 }
 
-async function sheetsGet(action, tab) {
-  let url = SCRIPT_URL + '?action=' + action;
-  if (tab) url += '&tab=' + tab;
+// Todas las llamadas usan GET con parámetros para evitar CORS
+async function sheetsCall(action, tab, data) {
+  let url = SCRIPT_URL + '?action=' + encodeURIComponent(action);
+  if (tab)  url += '&tab='  + encodeURIComponent(tab);
+  if (data) url += '&data=' + encodeURIComponent(JSON.stringify(data));
   const res = await fetch(url);
-  return res.json();
+  const text = await res.text();
+  try { return JSON.parse(text); }
+  catch(e) { throw new Error('Respuesta inválida del servidor. Verifica que el script esté implementado correctamente.'); }
 }
 
-async function sheetsPost(action, tab, data, extra) {
-  const body = { action, ...(tab && { tab }), ...(data && { data }), ...extra };
-  const res = await fetch(SCRIPT_URL, {
-    method: 'POST',
-    body: JSON.stringify(body)
-  });
-  return res.json();
-}
+// Alias para compatibilidad
+async function sheetsGet(action, tab) { return sheetsCall(action, tab, null); }
+async function sheetsPost(action, tab, data) { return sheetsCall(action, tab, data); }
 
 async function writeTab(tab, arr) {
-  const res = await sheetsPost('write', tab, arr);
+  const res = await sheetsCall('write', tab, arr);
   if (!res.ok) throw new Error(res.error);
   saveToCache();
 }
