@@ -253,7 +253,7 @@ textarea{resize:vertical;min-height:60px}
 // ═══════════════════════════════════
 const JSONBIN_API_KEY = '$2a$10$M/Z2hLF8o8dgn2b./hYxrO5HrxORKQIhU/OJ.yns7pBHJfGvCPGDG';
 const JSONBIN_BASE    = 'https://api.jsonbin.io/v3/b';
-const BIN_ID_KEY      = 'ff_bin_id';
+const BIN_ID_KEY = 'ff_bin_id';
 const CFG_KEY         = 'ff_cfg_v3';
 const CACHE_KEY       = 'ff_cache_v3';
 const OLD_KEYS        = {src:'ff2_sources',cat:'ff2_cats',tx:'ff2_txs',bud:'ff2_budgets'};
@@ -302,17 +302,27 @@ async function createBin(data) {
 }
 
 async function readBin() {
-  const res = await fetch(`${JSONBIN_BASE}/${binId}/latest`, { headers: headers() });
+  const id = '69d5cf51aaba882197d57cc5';
+  const res = await fetch(`${JSONBIN_BASE}/${id}/latest`, {
+    headers: {
+      'X-Master-Key': JSONBIN_API_KEY,
+      'X-Bin-Versioning': 'false'
+    }
+  });
   const json = await res.json();
+  if (!json.record) throw new Error(JSON.stringify(json));
   return json.record;
 }
 
 async function writeBin(data) {
-  await fetch(`${JSONBIN_BASE}/${binId}`, {
+  const id = '69d5cf51aaba882197d57cc5';
+  const res = await fetch(`${JSONBIN_BASE}/${id}`, {
     method:'PUT',
     headers: headers(),
     body: JSON.stringify(data)
   });
+  const json = await res.json();
+  if (json.message) console.log('writeBin:', json.message);
 }
 
 // ═══════════════════════════════════
@@ -326,7 +336,7 @@ async function init() {
     document.getElementById('setupScreen').style.display='flex';
     return;
   }
-  binId = cfg.binId; adminPin = cfg.pin;
+  binId = '69d5cf51aaba882197d57cc5'; adminPin = cfg.pin;
   showApp();
   loadCache();
   render();
@@ -366,7 +376,8 @@ async function setupSave() {
       initData.budgets      = JSON.parse(localStorage.getItem(OLD_KEYS.bud)||'[]');
       Object.values(OLD_KEYS).forEach(k=>localStorage.removeItem(k));
     }
-    binId = await createBin(initData);
+    // Use existing bin if already created
+    if (!binId) binId = await createBin(initData);
     adminPin = pin;
     saveCfg();
     sources=initData.sources; cats=initData.categories; txs=initData.transactions; budgets=initData.budgets;
