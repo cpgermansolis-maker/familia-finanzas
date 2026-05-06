@@ -878,7 +878,7 @@ function renderRecurring() {
           <span style="font-size:9px;padding:2px 6px;border-radius:8px;font-weight:500;background:${rt.active?'var(--gnl)':'var(--bg2)'};color:${rt.active?'var(--gnd)':'var(--tx2)'}">${rt.active?'Activa':'Pausada'}</span>
         </div>
       </div>
-      ${isAdmin ? `<div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap">
+      <div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap">
         <button class="btn-sm" onclick="openRTModal('${rt.id}')">Editar</button>
         <button class="btn-warn" onclick="toggleRT('${rt.id}')">${rt.active?'Pausar':'Activar'}</button>
         <button class="btn-danger" onclick="deleteRT('${rt.id}')">Eliminar</button>
