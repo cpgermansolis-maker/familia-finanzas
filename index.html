@@ -187,6 +187,7 @@ textarea{resize:vertical;min-height:55px}
   <div class="ns">Familia</div>
   <button class="ni" id="nav-tareas" onclick="nav('tareas')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><polyline points="2,7 5,10 12,3"/><rect x="1" y="1" width="12" height="12" rx="1"/></svg>Tareas</button>
   <button class="ni" id="nav-recurrentes" onclick="nav('recurrentes')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 7a5 5 0 1 0 5-5"/><polyline points="4,2 2,7 7,7"/></svg>Recurrentes</button>
+  <button class="ni" id="nav-fijos" onclick="nav('fijos')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="3" width="12" height="9" rx="1"/><line x1="1" y1="6" x2="13" y2="6"/><line x1="4" y1="9" x2="6" y2="9"/><line x1="8" y1="9" x2="10" y2="9"/></svg>Gastos fijos</button>
   <div class="ns">Sistema</div>
   <button class="ni" id="nav-config" onclick="nav('config')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="7" r="2"/><path d="M7 1v2M7 11v2M1 7h2M11 7h2M2.9 2.9l1.4 1.4M9.7 9.7l1.4 1.4M2.9 11.1l1.4-1.4M9.7 4.3l1.4-1.4"/></svg>Configuración</button>
   <div class="prf">
@@ -224,10 +225,10 @@ const H=()=>({'Content-Type':'application/json','X-Master-Key':APIKEY,'X-Bin-Ver
 const DEF={
   sources:[{id:'s1',name:'Mamá (EE.UU.)',color:'#1D9E75',desc:'Envíos desde EE.UU.'},{id:'s2',name:'Papá',color:'#378ADD',desc:'Aportaciones'},{id:'s3',name:'Personal',color:'#BA7517',desc:'Ingresos propios'}],
   categories:[{id:'c1',name:'Hogar',type:'expense'},{id:'c2',name:'Alimentación',type:'expense'},{id:'c3',name:'Transporte',type:'expense'},{id:'c4',name:'Salud',type:'expense'},{id:'c5',name:'Educación',type:'expense'},{id:'c6',name:'Servicios',type:'expense'},{id:'c7',name:'Ropa',type:'expense'},{id:'c8',name:'Entretenimiento',type:'expense'},{id:'c9',name:'Personal',type:'expense'},{id:'c10',name:'Otros',type:'expense'},{id:'c11',name:'Envío',type:'income'},{id:'c12',name:'Sueldo',type:'income'},{id:'c13',name:'Freelance',type:'income'},{id:'c14',name:'Otros ingresos',type:'income'}],
-  transactions:[],budgets:[],loans:[],tasks:[],recurringTasks:[]
+  transactions:[],budgets:[],loans:[],tasks:[],recurringTasks:[],fixedExpenses:[],fixedContribs:[{id:'fc1',srcId:'s1',amount:1688},{id:'fc2',srcId:'s3',amount:500},{id:'fc3',srcId:'s2',amount:529}]
 };
 
-let sources=[],cats=[],txs=[],budgets=[],loans=[],tasks=[],recurringTasks=[];
+let sources=[],cats=[],txs=[],budgets=[],loans=[],tasks=[],recurringTasks=[],fixedExpenses=[],fixedContribs=[];
 let isAdmin=false,adminPin='',cv='dashboard',txType='expense',rp='month',wo=0,syncing=false;
 let tips={},chartMode='bar',taskView='list';
 
@@ -241,11 +242,11 @@ async function readBin(){
 async function writeBin(data){
   await fetch(`${BASE}/${BIN}`,{method:'PUT',headers:H(),body:JSON.stringify(data)});
 }
-function getAll(){return{sources,categories:cats,transactions:txs,budgets,loans,tasks,recurringTasks};}
+function getAll(){return{sources,categories:cats,transactions:txs,budgets,loans,tasks,recurringTasks,fixedExpenses,fixedContribs};}
 async function persist(){saveCache();await writeBin(getAll());}
 function saveCache(){localStorage.setItem(CACHE_K,JSON.stringify(getAll()));}
 function loadCache(){
-  try{const c=JSON.parse(localStorage.getItem(CACHE_K));if(c){sources=c.sources||DEF.sources;cats=c.categories||DEF.categories;txs=(c.transactions||[]).map(t=>({...t,amount:parseFloat(t.amount)||0}));budgets=(c.budgets||[]).map(b=>({...b,amount:parseFloat(b.amount)||0}));loans=(c.loans||[]).map(l=>({...l,amount:parseFloat(l.amount)||0}));tasks=c.tasks||[];recurringTasks=c.recurringTasks||[];}}catch{}
+  try{const c=JSON.parse(localStorage.getItem(CACHE_K));if(c){sources=c.sources||DEF.sources;cats=c.categories||DEF.categories;txs=(c.transactions||[]).map(t=>({...t,amount:parseFloat(t.amount)||0}));budgets=(c.budgets||[]).map(b=>({...b,amount:parseFloat(b.amount)||0}));loans=(c.loans||[]).map(l=>({...l,amount:parseFloat(l.amount)||0}));tasks=c.tasks||[];recurringTasks=c.recurringTasks||[];fixedExpenses=c.fixedExpenses||[];fixedContribs=c.fixedContribs||DEF.fixedContribs;}}catch{}
 }
 function loadCfg(){try{return JSON.parse(localStorage.getItem(CFG_K));}catch{return null;}}
 function saveCfg(){localStorage.setItem(CFG_K,JSON.stringify({pin:adminPin}));}
@@ -285,7 +286,7 @@ async function setupSave(){
     txs=(data.transactions||[]).map(t=>({...t,amount:parseFloat(t.amount)||0}));
     budgets=(data.budgets||[]).map(b=>({...b,amount:parseFloat(b.amount)||0}));
     loans=(data.loans||[]).map(l=>({...l,amount:parseFloat(l.amount)||0}));
-    tasks=data.tasks||[];recurringTasks=data.recurringTasks||[];
+    tasks=data.tasks||[];recurringTasks=data.recurringTasks||[];fixedExpenses=data.fixedExpenses||[];fixedContribs=data.fixedContribs||DEF.fixedContribs;
     adminPin=pin;saveCfg();saveCache();
     document.getElementById('setupSc').style.display='none';
     document.getElementById('appRoot').style.display='block';
@@ -301,7 +302,7 @@ async function syncData(fb){
     txs=(d.transactions||[]).map(t=>({...t,amount:parseFloat(t.amount)||0}));
     budgets=(d.budgets||[]).map(b=>({...b,amount:parseFloat(b.amount)||0}));
     loans=(d.loans||[]).map(l=>({...l,amount:parseFloat(l.amount)||0}));
-    tasks=d.tasks||[];recurringTasks=d.recurringTasks||[];
+    tasks=d.tasks||[];recurringTasks=d.recurringTasks||[];fixedExpenses=d.fixedExpenses||[];fixedContribs=d.fixedContribs||DEF.fixedContribs;
     saveCache();setSS('ok');render();
   }catch(e){setSS('err');if(fb)alert('Error sync: '+e.message);}
   syncing=false;
@@ -366,7 +367,7 @@ function nav(view){
   cv=view;closeSB();
   document.querySelectorAll('.ni').forEach(el=>el.classList.remove('active'));
   const nb=document.getElementById('nav-'+view);if(nb)nb.classList.add('active');
-  const titles={dashboard:'Dashboard',nuevo:'Nuevo movimiento',historial:'Historial',presupuestos:'Presupuestos',fuentes:'Por fuente',prestamos:'Préstamos',reportes:'Reportes',tareas:'Tareas',recurrentes:'Tareas recurrentes',config:'Configuración'};
+  const titles={dashboard:'Dashboard',nuevo:'Nuevo movimiento',historial:'Historial',presupuestos:'Presupuestos',fuentes:'Por fuente',prestamos:'Préstamos',reportes:'Reportes',tareas:'Tareas',recurrentes:'Tareas recurrentes',fijos:'Gastos fijos',config:'Configuración'};
   document.getElementById('tb-t').textContent=titles[view]||view;
   destroyCharts();render();
 }
@@ -386,6 +387,7 @@ function render(){
   else if(cv==='reportes')el.innerHTML=renderReports();
   else if(cv==='tareas')el.innerHTML=renderTasks();
   else if(cv==='recurrentes')el.innerHTML=renderRecurring();
+  else if(cv==='fijos')el.innerHTML=renderFijos();
   else if(cv==='config')el.innerHTML=renderConfig();
   afterRender();
 }
@@ -985,6 +987,166 @@ async function toggleRT(id) {
 async function deleteRT(id) {
   if (!confirm('¿Eliminar esta tarea recurrente? Las instancias ya generadas se mantendrán en el historial de Tareas.')) return;
   recurringTasks = recurringTasks.filter(r => r.id !== id);
+  await persist(); closeModal(); render();
+}
+
+// ── GASTOS FIJOS ─────────────────────────────────────
+function renderFijos() {
+  const totalContrib = fixedContribs.reduce((a,c) => a + c.amount, 0);
+  const totalFixed   = fixedExpenses.reduce((a,e) => a + e.amount, 0);
+  const balance      = totalContrib - totalFixed;
+  const tp = tipH('fj-tip', 'Los gastos fijos son los compromisos semanales del hogar: renta, luz, gas, etc. Aquí puedes ver cuánto aporta cada quien y en qué se usa ese dinero.');
+
+  // Contrib cards
+  const contribCards = fixedContribs.map(c => {
+    const s = src(c.srcId);
+    const pct = totalContrib > 0 ? Math.round((c.amount / totalContrib) * 100) : 0;
+    return `<div class="bc" style="border-left:3px solid ${s.color}">
+      <div class="bcs"><span class="dot" style="background:${s.color}"></span>${s.name}</div>
+      <div class="bca gn">${fmt(c.amount)}</div>
+      <div class="bcm">${pct}% del total</div>
+      ${isAdmin ? `<button class="btn-sm" style="margin-top:6px" onclick="openContribModal('${c.id}')">Editar aporte</button>` : ''}
+    </div>`;
+  }).join('');
+
+  // Fixed expense rows grouped by category letter (from pizarra: S=Semanal, M=Mensual, B=Bimestral, D=Diario, H=?)
+  const expRows = fixedExpenses.length ? fixedExpenses.map(e => {
+    const covered = src(e.coveredBy);
+    return `<div class="cfg-r">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:500">${e.name}</div>
+        <div style="font-size:10px;color:var(--tx2);margin-top:1px">
+          ${e.freq ? freqLabelFijo(e.freq) + ' · ' : ''}
+          ${covered.name !== '?' ? `Cubre: <span class="dot" style="background:${covered.color};display:inline-block;vertical-align:middle"></span> ${covered.name}` : 'Sin fuente asignada'}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <span style="font-size:13px;font-weight:500;color:var(--rd)">${fmt(e.amount)}</span>
+        ${isAdmin ? `<button class="btn-sm" onclick="openFixedModal('${e.id}')">✎</button>
+        <button class="btn-danger" onclick="deleteFixed('${e.id}')">✕</button>` : ''}
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty">Sin gastos fijos registrados. Agrega el primero.</div>';
+
+  // Group by freq for summary
+  const byFreq = {};
+  fixedExpenses.forEach(e => {
+    const k = e.freq || 'other';
+    byFreq[k] = (byFreq[k] || 0) + e.amount;
+  });
+  const freqSummary = Object.entries(byFreq).map(([f, a]) =>
+    `<div class="cr"><span>${freqLabelFijo(f)}</span><span style="font-weight:500;color:var(--rd)">${fmt(a)}</span></div>`
+  ).join('');
+
+  return `
+  <div class="st">Gastos fijos semanales ${tp}</div>
+  ${tips['fj-tip'] ? `<div class="tb-box">Registra aquí los compromisos fijos del hogar. Puedes ver el aporte de cada fuente y en qué se destina el dinero semana a semana.</div>` : ''}
+
+  <div class="sg g3" style="margin-bottom:12px">${contribCards}</div>
+
+  <div class="sg g3">
+    <div class="sc"><div class="sl">Total aportes</div><div class="sv gn">${fmt(totalContrib)}</div></div>
+    <div class="sc"><div class="sl">Total gastos fijos</div><div class="sv rd">${fmt(totalFixed)}</div></div>
+    <div class="sc"><div class="sl">${balance >= 0 ? 'Sobrante' : 'Déficit'}</div><div class="sv ${balance >= 0 ? 'gn' : 'rd'}">${fmt(Math.abs(balance))}</div></div>
+  </div>
+
+  <div class="sg g2">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+        <div class="st" style="margin:0">Desglose de gastos fijos</div>
+        ${isAdmin ? `<button class="btn-p" style="font-size:10px;padding:4px 10px" onclick="openFixedModal('')">+ Agregar</button>` : ''}
+      </div>
+      ${expRows}
+      ${fixedExpenses.length ? `<div style="display:flex;justify-content:space-between;padding:9px 0 0;margin-top:5px;border-top:0.5px solid var(--br);font-size:12px;font-weight:500"><span>Total</span><span style="color:var(--rd)">${fmt(totalFixed)}</span></div>` : ''}
+    </div>
+    <div class="card">
+      <div class="st" style="margin-bottom:9px">Resumen por frecuencia ${tipH('fj-freq','Agrupa los gastos según cada cuánto se pagan. Útil para saber cuánto pesa cada período en el presupuesto.')}</div>
+      ${tips['fj-freq'] ? `<div class="tb-box">Semanal: cada semana. Mensual: una vez al mes. Bimestral: cada dos meses.</div>` : ''}
+      ${freqSummary || '<div class="empty">Sin datos</div>'}
+      <div style="margin-top:12px">
+        <div class="st" style="margin-bottom:8px">Distribución de aportes</div>
+        ${fixedContribs.map(c => {
+          const s = src(c.srcId);
+          const pct = totalContrib > 0 ? Math.round((c.amount / totalContrib) * 100) : 0;
+          return `<div class="bw"><div class="bl2"><span style="display:flex;align-items:center;gap:4px"><span class="dot" style="background:${s.color}"></span>${s.name}</span><span>${fmt(c.amount)} (${pct}%)</span></div><div class="bt"><div class="bf" style="width:${pct}%;background:${s.color}"></div></div></div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function freqLabelFijo(f) {
+  return {weekly:'Semanal',monthly:'Mensual',bimonthly:'Bimestral',daily:'Diario',annual:'Anual',other:'Otro'}[f] || f;
+}
+
+function openFixedModal(editId) {
+  const e = editId ? fixedExpenses.find(x => x.id === editId) : null;
+  const srcOpts = sources.map(s => `<option value="${s.id}" ${e?.coveredBy===s.id?'selected':''}>${s.name}</option>`).join('');
+  document.getElementById('modalBox').innerHTML = `<div class="modal-t">${e ? 'Editar gasto fijo' : 'Nuevo gasto fijo'}</div>
+  <div class="fg"><label class="fl">Nombre del gasto</label><input type="text" id="fx-nm" value="${e?.name||''}" placeholder="Ej: Renta, Gas, Luz..."></div>
+  <div class="sg g2">
+    <div class="fg"><label class="fl">Monto</label><input type="number" id="fx-am" value="${e?.amount||''}" placeholder="0.00" min="0" step="0.01"></div>
+    <div class="fg"><label class="fl">Frecuencia</label><select id="fx-fr">
+      <option value="weekly" ${e?.freq==='weekly'||!e?'selected':''}>Semanal</option>
+      <option value="monthly" ${e?.freq==='monthly'?'selected':''}>Mensual</option>
+      <option value="bimonthly" ${e?.freq==='bimonthly'?'selected':''}>Bimestral</option>
+      <option value="daily" ${e?.freq==='daily'?'selected':''}>Diario</option>
+      <option value="annual" ${e?.freq==='annual'?'selected':''}>Anual</option>
+      <option value="other" ${e?.freq==='other'?'selected':''}>Otro</option>
+    </select></div>
+  </div>
+  <div class="fg"><label class="fl">¿Quién lo cubre?</label><select id="fx-src"><option value="">— Sin asignar —</option>${srcOpts}</select></div>
+  <div class="fg"><label class="fl">Notas (opcional)</label><input type="text" id="fx-nt" value="${e?.notes||''}" placeholder="Notas..."></div>
+  <div id="fx-msg" style="font-size:11px;color:var(--rd);min-height:14px;margin-bottom:7px"></div>
+  <div class="ma">
+    ${e ? `<button class="btn-danger" onclick="deleteFixed('${e.id}')">Eliminar</button>` : ''}
+    <button class="btn-s" onclick="closeModal()">Cancelar</button>
+    <button class="btn-p" onclick="saveFixed('${editId||''}')">Guardar</button>
+  </div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+
+async function saveFixed(editId) {
+  const nm = document.getElementById('fx-nm')?.value.trim();
+  const am = parseFloat(document.getElementById('fx-am')?.value);
+  const fr = document.getElementById('fx-fr')?.value;
+  const sv = document.getElementById('fx-src')?.value || null;
+  const nt = document.getElementById('fx-nt')?.value || '';
+  const msg = document.getElementById('fx-msg');
+  if (!nm) { msg.textContent = 'Ingresa el nombre del gasto'; return; }
+  if (!am || am <= 0) { msg.textContent = 'Ingresa un monto válido'; return; }
+  if (editId) {
+    const e = fixedExpenses.find(x => x.id === editId);
+    if (e) Object.assign(e, {name:nm, amount:am, freq:fr, coveredBy:sv, notes:nt});
+  } else {
+    fixedExpenses.push({id:uid(), name:nm, amount:am, freq:fr, coveredBy:sv, notes:nt});
+  }
+  await persist(); closeModal(); render();
+}
+
+async function deleteFixed(id) {
+  if (!confirm('¿Eliminar este gasto fijo?')) return;
+  fixedExpenses = fixedExpenses.filter(e => e.id !== id);
+  await persist(); closeModal(); render();
+}
+
+function openContribModal(id) {
+  const c = fixedContribs.find(x => x.id === id);
+  if (!c) return;
+  const s = src(c.srcId);
+  document.getElementById('modalBox').innerHTML = `<div class="modal-t">Editar aporte de ${s.name}</div>
+  <div class="fg"><label class="fl">Aporte semanal</label><input type="number" id="ct-am" value="${c.amount}" placeholder="0.00" min="0" step="0.01"></div>
+  <div id="ct-msg" style="font-size:11px;color:var(--rd);min-height:14px;margin-bottom:7px"></div>
+  <div class="ma"><button class="btn-s" onclick="closeModal()">Cancelar</button><button class="btn-p" onclick="saveContrib('${id}')">Guardar</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+
+async function saveContrib(id) {
+  const am = parseFloat(document.getElementById('ct-am')?.value);
+  const msg = document.getElementById('ct-msg');
+  if (!am || am <= 0) { msg.textContent = 'Ingresa un monto válido'; return; }
+  const c = fixedContribs.find(x => x.id === id);
+  if (c) c.amount = am;
   await persist(); closeModal(); render();
 }
 
