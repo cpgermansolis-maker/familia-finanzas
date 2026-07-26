@@ -184,6 +184,11 @@ textarea{resize:vertical;min-height:55px}
   <button class="ni" id="nav-fuentes" onclick="nav('fuentes')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="3.5" cy="7" r="2.5"/><circle cx="10.5" cy="7" r="2.5"/><line x1="6" y1="7" x2="8" y2="7"/></svg>Por fuente</button>
   <button class="ni" id="nav-prestamos" onclick="nav('prestamos')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 7h10M7 2l5 5-5 5"/></svg>Préstamos</button>
   <button class="ni" id="nav-reportes" onclick="nav('reportes')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><polyline points="1,11 4,6.5 7,8.5 10,3.5 13,5.5"/><line x1="1" y1="13" x2="13" y2="13"/></svg>Reportes</button>
+  <div class="ns">Reparto familiar</div>
+  <button class="ni" id="nav-exec" onclick="nav('exec')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="7" width="3" height="6" rx="1"/><rect x="5.5" y="4" width="3" height="9" rx="1"/><rect x="10" y="1" width="3" height="12" rx="1"/></svg>Tablero ejecutivo</button>
+  <button class="ni" id="nav-compartidos" onclick="nav('compartidos')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="4" cy="4" r="2.3"/><circle cx="10" cy="4" r="2.3"/><path d="M1 13c0-2 1.3-3.5 3-3.5S7 11 7 13M7 13c0-2 1.3-3.5 3-3.5s3 1.5 3 3.5"/></svg>Gastos compartidos</button>
+  <button class="ni" id="nav-deudas" onclick="nav('deudas')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h10M2 7h10M2 10h6"/><circle cx="11" cy="10.5" r="2"/></svg>Deudas</button>
+  <button class="ni" id="nav-alimento" onclick="nav('alimento')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 1v5a2 2 0 01-2 2v5M2.5 1v4M5.5 1v4M10 1c-1.5 0-2 2-2 4s.5 3 2 3 2-1 2-3-.5-4-2-4zM10 8v5"/></svg>Alimento (turnos)</button>
   <div class="ns">Familia</div>
   <button class="ni" id="nav-tareas" onclick="nav('tareas')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><polyline points="2,7 5,10 12,3"/><rect x="1" y="1" width="12" height="12" rx="1"/></svg>Tareas</button>
   <button class="ni" id="nav-recurrentes" onclick="nav('recurrentes')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 7a5 5 0 1 0 5-5"/><polyline points="4,2 2,7 7,7"/></svg>Recurrentes</button>
@@ -214,23 +219,26 @@ textarea{resize:vertical;min-height:55px}
 </div>
 </div>
 <div class="modal-bg" id="modalBg"><div class="modal" id="modalBox"></div></div>
+<input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(event)">
 <script>
-const APIKEY='$2a$10$M/Z2hLF8o8dgn2b./hYxrO5HrxORKQIhU/OJ.yns7pBHJfGvCPGDG';
+const APIKEY='$2a$10$IJ23U.u/28cm/qEWBCCni.DfevsF6Ru.bzCAeYCQ481r/V/eEiHf2'; // Access Key limitada (solo read+update de este bin), NO la Master Key
 const BIN='69d5cf51aaba882197d57cc5';
 const BASE='https://api.jsonbin.io/v3/b';
 const CFG_K='ff_cfg_v3',CACHE_K='ff_cache_v3';
 const OLD_K={src:'ff2_sources',cat:'ff2_cats',tx:'ff2_txs',bud:'ff2_budgets'};
-const H=()=>({'Content-Type':'application/json','X-Master-Key':APIKEY,'X-Bin-Versioning':'false'});
+const H=()=>({'Content-Type':'application/json','X-Access-Key':APIKEY,'X-Bin-Versioning':'false'});
 
 const DEF={
   sources:[{id:'s1',name:'Mamá (EE.UU.)',color:'#1D9E75',desc:'Envíos desde EE.UU.'},{id:'s2',name:'Papá',color:'#378ADD',desc:'Aportaciones'},{id:'s3',name:'Personal',color:'#BA7517',desc:'Ingresos propios'}],
   categories:[{id:'c1',name:'Hogar',type:'expense'},{id:'c2',name:'Alimentación',type:'expense'},{id:'c3',name:'Transporte',type:'expense'},{id:'c4',name:'Salud',type:'expense'},{id:'c5',name:'Educación',type:'expense'},{id:'c6',name:'Servicios',type:'expense'},{id:'c7',name:'Ropa',type:'expense'},{id:'c8',name:'Entretenimiento',type:'expense'},{id:'c9',name:'Personal',type:'expense'},{id:'c10',name:'Otros',type:'expense'},{id:'c11',name:'Envío',type:'income'},{id:'c12',name:'Sueldo',type:'income'},{id:'c13',name:'Freelance',type:'income'},{id:'c14',name:'Otros ingresos',type:'income'}],
-  transactions:[],budgets:[],loans:[],tasks:[],recurringTasks:[],fixedExpenses:[],fixedContribs:[{id:'fc1',srcId:'s1',amount:1688},{id:'fc2',srcId:'s3',amount:500},{id:'fc3',srcId:'s2',amount:529}]
+  transactions:[],budgets:[],loans:[],tasks:[],recurringTasks:[],fixedExpenses:[],fixedContribs:[{id:'fc1',srcId:'s1',amount:1688},{id:'fc2',srcId:'s3',amount:500},{id:'fc3',srcId:'s2',amount:529}],
+  centers:[{id:'ce1',name:'Casa'},{id:'ce2',name:'Trikles'}],shared:[],debts:[],foodRotations:[{id:'fr1',name:'Alimento de animales',members:['s2','s3'],centerId:'ce2'}],foodPurchases:[]
 };
 
 let sources=[],cats=[],txs=[],budgets=[],loans=[],tasks=[],recurringTasks=[],fixedExpenses=[],fixedContribs=[];
+let centers=[],shared=[],debts=[],foodRotations=[],foodPurchases=[];
 let isAdmin=false,adminPin='',cv='dashboard',txType='expense',rp='month',wo=0,syncing=false;
-let tips={},chartMode='bar',taskView='list';
+let tips={},chartMode='bar',taskView='list',execPeriod='month',debtCenter='all',sharedCenter='all';
 
 // ── API ──────────────────────────────────────────────
 async function readBin(){
@@ -242,11 +250,11 @@ async function readBin(){
 async function writeBin(data){
   await fetch(`${BASE}/${BIN}`,{method:'PUT',headers:H(),body:JSON.stringify(data)});
 }
-function getAll(){return{sources,categories:cats,transactions:txs,budgets,loans,tasks,recurringTasks,fixedExpenses,fixedContribs};}
+function getAll(){return{sources,categories:cats,transactions:txs,budgets,loans,tasks,recurringTasks,fixedExpenses,fixedContribs,centers,shared,debts,foodRotations,foodPurchases};}
 async function persist(){saveCache();await writeBin(getAll());}
 function saveCache(){localStorage.setItem(CACHE_K,JSON.stringify(getAll()));}
 function loadCache(){
-  try{const c=JSON.parse(localStorage.getItem(CACHE_K));if(c){sources=c.sources||DEF.sources;cats=c.categories||DEF.categories;txs=(c.transactions||[]).map(t=>({...t,amount:parseFloat(t.amount)||0}));budgets=(c.budgets||[]).map(b=>({...b,amount:parseFloat(b.amount)||0}));loans=(c.loans||[]).map(l=>({...l,amount:parseFloat(l.amount)||0}));tasks=c.tasks||[];recurringTasks=c.recurringTasks||[];fixedExpenses=c.fixedExpenses||[];fixedContribs=c.fixedContribs||DEF.fixedContribs;}}catch{}
+  try{const c=JSON.parse(localStorage.getItem(CACHE_K));if(c){sources=c.sources||DEF.sources;cats=c.categories||DEF.categories;txs=(c.transactions||[]).map(t=>({...t,amount:parseFloat(t.amount)||0}));budgets=(c.budgets||[]).map(b=>({...b,amount:parseFloat(b.amount)||0}));loans=(c.loans||[]).map(l=>({...l,amount:parseFloat(l.amount)||0}));tasks=c.tasks||[];recurringTasks=c.recurringTasks||[];fixedExpenses=c.fixedExpenses||[];fixedContribs=c.fixedContribs||DEF.fixedContribs;centers=c.centers||DEF.centers;shared=c.shared||[];debts=c.debts||[];foodRotations=c.foodRotations||DEF.foodRotations;foodPurchases=c.foodPurchases||[];}}catch{}
 }
 function loadCfg(){try{return JSON.parse(localStorage.getItem(CFG_K));}catch{return null;}}
 function saveCfg(){localStorage.setItem(CFG_K,JSON.stringify({pin:adminPin}));}
@@ -287,6 +295,7 @@ async function setupSave(){
     budgets=(data.budgets||[]).map(b=>({...b,amount:parseFloat(b.amount)||0}));
     loans=(data.loans||[]).map(l=>({...l,amount:parseFloat(l.amount)||0}));
     tasks=data.tasks||[];recurringTasks=data.recurringTasks||[];fixedExpenses=data.fixedExpenses||[];fixedContribs=data.fixedContribs||DEF.fixedContribs;
+    centers=data.centers||DEF.centers;shared=data.shared||[];debts=data.debts||[];foodRotations=data.foodRotations||DEF.foodRotations;foodPurchases=data.foodPurchases||[];
     adminPin=pin;saveCfg();saveCache();
     document.getElementById('setupSc').style.display='none';
     document.getElementById('appRoot').style.display='block';
@@ -303,6 +312,7 @@ async function syncData(fb){
     budgets=(d.budgets||[]).map(b=>({...b,amount:parseFloat(b.amount)||0}));
     loans=(d.loans||[]).map(l=>({...l,amount:parseFloat(l.amount)||0}));
     tasks=d.tasks||[];recurringTasks=d.recurringTasks||[];fixedExpenses=d.fixedExpenses||[];fixedContribs=d.fixedContribs||DEF.fixedContribs;
+    centers=d.centers||DEF.centers;shared=d.shared||[];debts=d.debts||[];foodRotations=d.foodRotations||DEF.foodRotations;foodPurchases=d.foodPurchases||[];
     saveCache();setSS('ok');render();
   }catch(e){setSS('err');if(fb)alert('Error sync: '+e.message);}
   syncing=false;
@@ -367,7 +377,7 @@ function nav(view){
   cv=view;closeSB();
   document.querySelectorAll('.ni').forEach(el=>el.classList.remove('active'));
   const nb=document.getElementById('nav-'+view);if(nb)nb.classList.add('active');
-  const titles={dashboard:'Dashboard',nuevo:'Nuevo movimiento',historial:'Historial',presupuestos:'Presupuestos',fuentes:'Por fuente',prestamos:'Préstamos',reportes:'Reportes',tareas:'Tareas',recurrentes:'Tareas recurrentes',fijos:'Gastos fijos',config:'Configuración'};
+  const titles={dashboard:'Dashboard',nuevo:'Nuevo movimiento',historial:'Historial',presupuestos:'Presupuestos',fuentes:'Por fuente',prestamos:'Préstamos',reportes:'Reportes',tareas:'Tareas',recurrentes:'Tareas recurrentes',fijos:'Gastos fijos',exec:'Tablero ejecutivo',compartidos:'Gastos compartidos',deudas:'Deudas',alimento:'Alimento — turnos',config:'Configuración'};
   document.getElementById('tb-t').textContent=titles[view]||view;
   destroyCharts();render();
 }
@@ -388,6 +398,10 @@ function render(){
   else if(cv==='tareas')el.innerHTML=renderTasks();
   else if(cv==='recurrentes')el.innerHTML=renderRecurring();
   else if(cv==='fijos')el.innerHTML=renderFijos();
+  else if(cv==='exec')el.innerHTML=renderExec();
+  else if(cv==='compartidos')el.innerHTML=renderShared();
+  else if(cv==='deudas')el.innerHTML=renderDebts();
+  else if(cv==='alimento')el.innerHTML=renderFood();
   else if(cv==='config')el.innerHTML=renderConfig();
   afterRender();
 }
@@ -399,7 +413,8 @@ function txRow(t){
   if(t.type==='transfer'){icon='⇄';ibg='var(--bll)';icol='var(--bld)';acol='var(--bl)';sg='⇄';}
   if(t.type==='reclass'){icon='↺';ibg='var(--aml)';icol='var(--amd)';acol='var(--am)';sg='↺';}
   let meta=t.type==='transfer'?`${s.name} → ${src(t.destId).name}`:t.type==='reclass'?`${bud(t.fromBudId).name} → ${bud(t.toBudId).name}`:`${s.name}${c.name&&c.name!=='?'?' · '+c.name:''}${b.name&&b.name!=='?'?' ['+b.name+']':''}`;
-  return`<div class="txi"><div class="tx-ic" style="background:${ibg};color:${icol}">${icon}</div><div class="tx-in"><div class="tx-d">${t.desc||c.name||'Sin descripción'}</div><div class="tx-m">${fmtD(t.date)} · ${meta}</div></div><div class="tx-a" style="color:${acol}">${['⇄','↺'].includes(sg)?'':sg}${fmt(t.amount)}</div></div>`;
+  const ceName=t.centerId?center(t.centerId).name:'';
+  return`<div class="txi" ${isAdmin?`onclick="openTxModal('${t.id}')" style="cursor:pointer"`:''}><div class="tx-ic" style="background:${ibg};color:${icol}">${icon}</div><div class="tx-in"><div class="tx-d">${t.desc||c.name||'Sin descripción'}</div><div class="tx-m">${fmtD(t.date)} · ${meta}${ceName?' · '+ceName:''}</div></div><div class="tx-a" style="color:${acol}">${['⇄','↺'].includes(sg)?'':sg}${fmt(t.amount)}</div></div>`;
 }
 
 // ── DASHBOARD ────────────────────────────────────────
@@ -448,6 +463,7 @@ function renderNuevo(){
   return`<div class="card" style="max-width:500px">
   <div class="tabs"><button class="tab ${txType==='expense'?'se':''}" onclick="txType='expense';render()">Gasto</button><button class="tab ${txType==='income'?'si':''}" onclick="txType='income';render()">Ingreso</button><button class="tab ${txType==='transfer'?'st2':''}" onclick="txType='transfer';render()">Transferencia</button><button class="tab ${txType==='reclass'?'sr':''}" onclick="txType='reclass';render()">Reclasificación</button></div>
   <div class="sg g2"><div class="fg"><label class="fl">Monto (MXN)</label><input type="number" id="f-am" placeholder="0.00" min="0" step="0.01"></div><div class="fg"><label class="fl">Fecha</label><input type="date" id="f-dt" value="${today()}"></div></div>
+  ${['expense','income'].includes(txType)?`<div class="fg"><label class="fl">Centro (Casa / Trikles)</label><select id="f-ce">${centerOpts()}</select></div>`:''}
   ${ex}
   <div class="fg"><label class="fl">Descripción</label><input type="text" id="f-dc" placeholder="Descripción..."></div>
   <div class="fg" style="margin-bottom:12px"><label class="fl">Notas</label><textarea id="f-nt" placeholder="Notas adicionales..."></textarea></div>
@@ -474,7 +490,7 @@ async function saveTx(){
   const t={id:uid(),type:txType,amount:am,date:dt,desc:dc,notes:nt};
   if(txType==='transfer'){t.srcId=document.getElementById('f-src')?.value;t.destId=document.getElementById('f-dst')?.value;if(t.srcId===t.destId){msg.textContent='Origen y destino deben ser diferentes';return;}}
   else if(txType==='reclass'){t.fromBudId=document.getElementById('f-fb')?.value;t.toBudId=document.getElementById('f-tb')?.value;if(!t.fromBudId||!t.toBudId||t.fromBudId===t.toBudId){msg.textContent='Presupuestos inválidos';return;}t.srcId=budgets.find(b=>b.id===t.fromBudId)?.srcId;}
-  else{t.srcId=document.getElementById('f-src')?.value;t.categoryId=document.getElementById('f-cat')?.value;t.budId=document.getElementById('f-bud')?.value||null;
+  else{t.srcId=document.getElementById('f-src')?.value;t.categoryId=document.getElementById('f-cat')?.value;t.budId=document.getElementById('f-bud')?.value||null;t.centerId=document.getElementById('f-ce')?.value||null;
     if(txType==='income'){const tg=document.getElementById('f-tg')?.checked;if(tg){const bn=document.getElementById('f-bn')?.value.trim();if(!bn){msg.textContent='Escribe el nombre del presupuesto';return;}const wk=getWK(0);const nb={id:uid(),name:bn,srcId:t.srcId,amount:am,weekKey:wk.key,weekLabel:wk.label,notes:nt};budgets.push(nb);t.budId=nb.id;}}}
   btn.textContent='Guardando...';btn.disabled=true;txs.push(t);
   try{await persist();nav('dashboard');}
@@ -753,6 +769,10 @@ function renderConfig(){
     <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px"><div class="st" style="margin:0">Categorías</div><button class="btn-p" style="font-size:10px;padding:4px 10px" onclick="openModal('cat')">+ Agregar</button></div>
     <div style="font-size:10px;color:var(--tx3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Gastos</div>${cats.filter(c=>c.type==='expense').map(c=>`<div class="cfg-r"><span style="font-size:12px">${c.name}</span><button class="btn-danger" onclick="delCat('${c.id}')">Eliminar</button></div>`).join('')}
     <div style="font-size:10px;color:var(--tx3);margin:10px 0 5px;text-transform:uppercase;letter-spacing:.05em">Ingresos</div>${cats.filter(c=>c.type==='income').map(c=>`<div class="cfg-r"><span style="font-size:12px">${c.name}</span><button class="btn-danger" onclick="delCat('${c.id}')">Eliminar</button></div>`).join('')}</div>
+  </div>
+  <div class="sg g2">
+    <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px"><div class="st" style="margin:0">Centros (Casa / Trikles)</div><button class="btn-p" style="font-size:10px;padding:4px 10px" onclick="addCenter()">+ Agregar</button></div>${centers.map(c=>`<div class="cfg-r"><span style="font-size:12px">${c.name}</span><div style="display:flex;gap:5px"><button class="btn-sm" onclick="renameCenter('${c.id}')">Renombrar</button><button class="btn-danger" onclick="delCenter('${c.id}')">Eliminar</button></div></div>`).join('')||'<div class="empty">Sin centros</div>'}</div>
+    <div class="card"><div class="st">Respaldo de datos</div><div style="font-size:11px;color:var(--tx2);margin-bottom:9px">Descarga una copia de seguridad o restaura desde un respaldo. Hazlo seguido para no perder nada.</div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn-p" style="font-size:11px" onclick="exportData()">⬇ Exportar respaldo (JSON)</button><button class="btn-s" onclick="exportCSV()">⬇ Movimientos (Excel/CSV)</button><button class="btn-warn" onclick="triggerImport()">⬆ Importar respaldo</button></div></div>
   </div>
   <div class="card"><div class="st">Cambiar PIN</div><div class="sg g2"><div class="fg"><label class="fl">PIN actual</label><input type="password" id="p-old" maxlength="4" placeholder="••••"></div><div class="fg"><label class="fl">PIN nuevo</label><input type="password" id="p-new" maxlength="4" placeholder="••••"></div></div><div id="p-msg" style="font-size:11px;min-height:14px;margin-bottom:7px"></div><button class="btn-p" onclick="changePin()">Actualizar PIN</button></div>`;
 }
@@ -1148,6 +1168,217 @@ async function saveContrib(id) {
   const c = fixedContribs.find(x => x.id === id);
   if (c) c.amount = am;
   await persist(); closeModal(); render();
+}
+
+// ── REPARTO FAMILIAR (Fase 1) ─────────────────────────
+const val=id=>document.getElementById(id)?.value;
+const center=id=>centers.find(c=>c.id===id)||{name:'Sin centro'};
+function centerOpts(sel){return`<option value="">— Sin asignar —</option>`+centers.map(c=>`<option value="${c.id}" ${sel===c.id?'selected':''}>${c.name}</option>`).join('');}
+function nextFoodPayer(rot){
+  if(!rot||!rot.members||!rot.members.length)return null;
+  const purchases=foodPurchases.filter(f=>f.rotId===rot.id).sort((a,b)=>a.date<b.date?-1:1);
+  if(!purchases.length)return rot.members[0];
+  const last=purchases[purchases.length-1].payerId;
+  const idx=rot.members.indexOf(last);
+  return rot.members[(idx+1)%rot.members.length];
+}
+
+// ── TABLERO EJECUTIVO ─────────────────────────────────
+function renderExec(){
+  const now=new Date();
+  const inP=d=>{if(execPeriod==='all'||!d)return true;const x=new Date(d);if(execPeriod==='month')return x.getMonth()===now.getMonth()&&x.getFullYear()===now.getFullYear();if(execPeriod==='year')return x.getFullYear()===now.getFullYear();return true;};
+  const paid={};sources.forEach(s=>paid[s.id]={total:0,byCenter:{}});
+  const add=(pid,ce,amt)=>{if(!pid)return;paid[pid]=paid[pid]||{total:0,byCenter:{}};paid[pid].total+=amt;const k=ce||'none';paid[pid].byCenter[k]=(paid[pid].byCenter[k]||0)+amt;};
+  txs.filter(t=>t.type==='expense'&&inP(t.date)).forEach(t=>add(t.srcId,t.centerId,t.amount));
+  shared.filter(sh=>inP(sh.date)).forEach(sh=>sh.parts.filter(p=>p.paid).forEach(p=>add(p.personId,sh.centerId,p.amount)));
+  foodPurchases.filter(f=>inP(f.date)).forEach(f=>add(f.payerId,f.centerId,f.amount));
+  const grand=Object.values(paid).reduce((a,p)=>a+p.total,0)||1;
+  const foodBanner=foodRotations.map(rot=>{const n=nextFoodPayer(rot);return n?`<div class="ib ip" style="display:flex;justify-content:space-between;align-items:center"><span>🐾 Próxima compra de ${rot.name}:</span><strong style="font-size:13px">${src(n).name}</strong></div>`:'';}).join('');
+  const pendShared=shared.reduce((a,sh)=>a+sh.parts.filter(p=>!p.paid).reduce((b,p)=>b+p.amount,0),0);
+  const cards=sources.map(s=>{const d=paid[s.id]||{total:0,byCenter:{}};const pct=Math.round((d.total/grand)*100);const lines=centers.map(c=>`<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx2)"><span>${c.name}</span><span>${fmt(d.byCenter[c.id]||0)}</span></div>`).join('')+(d.byCenter['none']?`<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx3)"><span>Sin centro</span><span>${fmt(d.byCenter['none'])}</span></div>`:'');return`<div class="bc" style="border-left:3px solid ${s.color}"><div class="bcs"><span class="dot" style="background:${s.color}"></span>${s.name}</div><div class="bca">${fmt(d.total)}</div><div class="bcm">${pct}% del total pagado</div><div style="margin-top:7px;border-top:0.5px solid var(--br);padding-top:6px">${lines}</div></div>`;}).join('');
+  const periodBtns=['month','year','all'].map(p=>`<button class="per-btn ${execPeriod===p?'sel':''}" onclick="execPeriod='${p}';render()">${{month:'Este mes',year:'Este año',all:'Todo'}[p]}</button>`).join('');
+  const tp=tipH('ex','Vista para tu papá: cuánto ha pagado cada quién en el período, separado por centro.');
+  return`<div class="st" style="margin-bottom:9px">Tablero ejecutivo ${tp}</div>${tips['ex']?`<div class="tb-box">Suma lo que cada persona pagó: gastos directos + sus partes de gastos compartidos + compras de alimento. Cambia el período con los botones.</div>`:''}
+  <div class="per-row">${periodBtns}</div>
+  ${foodBanner}
+  ${pendShared>0?`<div class="ib ia">⚠ Hay <strong>${fmt(pendShared)}</strong> en partes pendientes de gastos compartidos. <span style="cursor:pointer;text-decoration:underline" onclick="nav('compartidos')">Ver detalle</span></div>`:''}
+  <div class="sg g3" style="margin-top:4px">${cards}</div>
+  <div class="card"><div class="st">Quién paga qué — comparativo</div>${sources.map(s=>{const d=paid[s.id]||{total:0};const pct=Math.round((d.total/grand)*100);return`<div class="bw"><div class="bl2"><span style="display:flex;align-items:center;gap:5px"><span class="dot" style="background:${s.color}"></span>${s.name}</span><span>${fmt(d.total)} (${pct}%)</span></div><div class="bt"><div class="bf" style="width:${pct}%;background:${s.color}"></div></div></div>`;}).join('')}</div>`;
+}
+
+// ── GASTOS COMPARTIDOS ────────────────────────────────
+function renderShared(){
+  const tp=tipH('sh','Un gasto compartido se reparte entre varias personas. Marca quién ya puso su parte y quién falta.');
+  let list=[...shared].sort((a,b)=>a.date<b.date?1:-1);
+  if(sharedCenter!=='all')list=list.filter(s=>s.centerId===sharedCenter);
+  const tabs=`<div class="tabs"><button class="tab ${sharedCenter==='all'?'sact':''}" onclick="sharedCenter='all';render()">Todos</button>${centers.map(c=>`<button class="tab ${sharedCenter===c.id?'sact':''}" onclick="sharedCenter='${c.id}';render()">${c.name}</button>`).join('')}</div>`;
+  const cards=list.map(sh=>{
+    const ce=sh.centerId?center(sh.centerId).name:'Sin centro';
+    const pendSum=sh.parts.filter(p=>!p.paid).reduce((a,p)=>a+p.amount,0);
+    const partsH=sh.parts.map(p=>{const s=src(p.personId);return`<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;font-size:11px"><span style="display:flex;align-items:center;gap:5px"><span class="dot" style="background:${s.color}"></span>${s.name}</span><span style="display:flex;align-items:center;gap:7px"><span style="${p.paid?'color:var(--gn)':'color:var(--am)'};font-weight:500">${p.paid?'✓':'⏳'} ${fmt(p.amount)}</span>${isAdmin?`<button class="btn-sm" onclick="toggleSharedPart('${sh.id}','${p.personId}')">${p.paid?'Pendiente':'Pagado'}</button>`:''}</span></div>`;}).join('');
+    return`<div class="bud-c"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px"><div><div style="font-size:13px;font-weight:500">${sh.concept}</div><div style="font-size:10px;color:var(--tx2);margin-top:2px"><span class="badge bdg-ip">${ce}</span> · ${fmtD(sh.date)}${sh.fronterId?` · Adelantó: ${src(sh.fronterId).name}`:''}</div></div><div style="text-align:right"><div style="font-size:16px;font-weight:500">${fmt(sh.total)}</div>${pendSum>0?`<div style="font-size:10px;color:var(--am)">Falta ${fmt(pendSum)}</div>`:`<div style="font-size:10px;color:var(--gn)">Completo ✓</div>`}</div></div><div style="border-top:0.5px solid var(--br);padding-top:5px">${partsH}</div>${isAdmin?`<div style="display:flex;gap:5px;margin-top:7px"><button class="btn-sm" onclick="openSharedModal('${sh.id}')">Editar</button><button class="btn-danger" onclick="deleteShared('${sh.id}')">Eliminar</button></div>`:''}</div>`;
+  }).join('')||'<div class="empty" style="padding:16px">Sin gastos compartidos. Crea el primero (ej. la camioneta).</div>';
+  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px"><div class="st" style="margin:0">Gastos compartidos ${tp}</div>${isAdmin?`<button class="btn-p" style="font-size:10px;padding:4px 10px" onclick="openSharedModal('')">+ Nuevo gasto</button>`:''}</div>${tips['sh']?`<div class="tb-box">Cada gasto se divide en partes. Verde ✓ = ya pagó; ámbar ⏳ = falta. Las partes pendientes aparecen también en Deudas.</div>`:''}${tabs}${cards}`;
+}
+function openSharedModal(editId){
+  const sh=editId?shared.find(x=>x.id===editId):null;
+  const rows=sources.map(s=>{const part=sh?sh.parts.find(p=>p.personId===s.id):null;return`<div class="cfg-r"><label style="display:flex;align-items:center;gap:6px;font-size:12px;flex:1;cursor:pointer"><input type="checkbox" class="sp-inc" data-pid="${s.id}" ${part?'checked':''}><span class="dot" style="background:${s.color}"></span>${s.name}</label><input type="number" class="sp-amt" data-pid="${s.id}" value="${part?part.amount:''}" placeholder="0.00" step="0.01" style="width:85px"><label style="display:flex;align-items:center;gap:4px;font-size:10px;cursor:pointer"><input type="checkbox" class="sp-paid" data-pid="${s.id}" ${part&&part.paid?'checked':''}>pagó</label></div>`;}).join('');
+  const frO=sources.map(s=>`<option value="${s.id}" ${sh&&sh.fronterId===s.id?'selected':''}>${s.name}</option>`).join('');
+  document.getElementById('modalBox').innerHTML=`<div class="modal-t">${sh?'Editar gasto compartido':'Nuevo gasto compartido'}</div>
+  <div class="fg"><label class="fl">Concepto</label><input type="text" id="sh-concept" value="${sh?(sh.concept||'').replace(/"/g,'&quot;'):''}" placeholder="Ej: Camioneta, Despensa..."></div>
+  <div class="sg g2"><div class="fg"><label class="fl">Monto total</label><input type="number" id="sh-total" value="${sh?sh.total:''}" step="0.01" placeholder="0.00"></div><div class="fg"><label class="fl">Fecha</label><input type="date" id="sh-date" value="${sh?sh.date:today()}"></div></div>
+  <div class="sg g2"><div class="fg"><label class="fl">Centro</label><select id="sh-center">${centerOpts(sh?sh.centerId:null)}</select></div><div class="fg"><label class="fl">¿Quién adelantó? (opcional)</label><select id="sh-fronter"><option value="">— Nadie / cada quién pone —</option>${frO}</select></div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:9px 0 4px"><label class="fl" style="margin:0">Reparto por persona</label><button class="btn-sm" onclick="splitEqual()">Dividir igual</button></div>
+  ${rows}
+  <div id="sh-msg" style="font-size:11px;color:var(--rd);min-height:14px;margin:7px 0"></div>
+  <div class="ma">${sh?`<button class="btn-danger" onclick="deleteShared('${sh.id}')">Eliminar</button>`:''}<button class="btn-s" onclick="closeModal()">Cancelar</button><button class="btn-p" onclick="saveShared('${editId||''}')">Guardar</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function splitEqual(){
+  const total=parseFloat(val('sh-total'))||0;
+  const incs=[...document.querySelectorAll('.sp-inc')].filter(x=>x.checked);
+  if(!incs.length){return;}
+  const each=Math.round((total/incs.length)*100)/100;
+  document.querySelectorAll('.sp-amt').forEach(inp=>{const pid=inp.dataset.pid;const inc=document.querySelector(`.sp-inc[data-pid="${pid}"]`);inp.value=inc&&inc.checked?each:'';});
+}
+async function saveShared(editId){
+  const concept=val('sh-concept'),total=parseFloat(val('sh-total')),date=val('sh-date'),centerId=val('sh-center')||null,fronterId=val('sh-fronter')||null;
+  const msg=document.getElementById('sh-msg');
+  if(!concept||!concept.trim()){msg.textContent='Escribe el concepto';return;}
+  if(!total||total<=0){msg.textContent='Monto total inválido';return;}
+  const parts=[];
+  document.querySelectorAll('.sp-inc').forEach(inc=>{if(!inc.checked)return;const pid=inc.dataset.pid;const amt=parseFloat(document.querySelector(`.sp-amt[data-pid="${pid}"]`)?.value)||0;const paid=document.querySelector(`.sp-paid[data-pid="${pid}"]`)?.checked||false;parts.push({personId:pid,amount:amt,paid,paidDate:paid?date:null});});
+  if(!parts.length){msg.textContent='Incluye al menos una persona en el reparto';return;}
+  if(editId){const sh=shared.find(x=>x.id===editId);if(sh){const oldParts=sh.parts;Object.assign(sh,{concept:concept.trim(),total,date,centerId,fronterId,parts:parts.map(p=>{const o=oldParts.find(x=>x.personId===p.personId);return o&&o.paid&&p.paid?{...p,paidDate:o.paidDate}:p;})});}}
+  else shared.push({id:uid(),concept:concept.trim(),total,date,centerId,fronterId,parts,createdDate:today()});
+  await persist();closeModal();render();
+}
+function deleteShared(id){if(!confirm('¿Eliminar este gasto compartido?'))return;shared=shared.filter(s=>s.id!==id);persist().then(()=>{closeModal();render();});}
+async function toggleSharedPart(shId,pid){const sh=shared.find(x=>x.id===shId);if(!sh)return;const p=sh.parts.find(x=>x.personId===pid);if(!p)return;p.paid=!p.paid;p.paidDate=p.paid?today():null;await persist();render();}
+
+// ── DEUDAS ────────────────────────────────────────────
+function renderDebts(){
+  const tp=tipH('db','Resumen de cuánto debe y cuánto le deben a cada persona. Las partes pendientes de gastos compartidos cuentan aquí.');
+  const cf=debtCenter,inCenter=ce=>cf==='all'||ce===cf;
+  const owe={},owed={};sources.forEach(s=>{owe[s.id]=0;owed[s.id]=0;});
+  const manualItems=[],sharedItems=[];
+  debts.filter(d=>d.status==='pending'&&inCenter(d.centerId)).forEach(d=>{owe[d.fromId]=(owe[d.fromId]||0)+d.amount;owed[d.toId]=(owed[d.toId]||0)+d.amount;manualItems.push(d);});
+  shared.forEach(sh=>{if(!inCenter(sh.centerId))return;sh.parts.filter(p=>!p.paid).forEach(p=>{owe[p.personId]=(owe[p.personId]||0)+p.amount;if(sh.fronterId&&sh.fronterId!==p.personId)owed[sh.fronterId]=(owed[sh.fronterId]||0)+p.amount;sharedItems.push({sh,p});});});
+  const tabs=`<div class="tabs"><button class="tab ${cf==='all'?'sact':''}" onclick="debtCenter='all';render()">Todo</button>${centers.map(c=>`<button class="tab ${cf===c.id?'sact':''}" onclick="debtCenter='${c.id}';render()">${c.name}</button>`).join('')}</div>`;
+  const cards=sources.map(s=>{const o=owe[s.id]||0,e=owed[s.id]||0,net=e-o;return`<div class="bc" style="border-left:3px solid ${s.color}"><div class="bcs"><span class="dot" style="background:${s.color}"></span>${s.name}</div><div style="display:flex;justify-content:space-between;font-size:11px;margin-top:5px"><span style="color:var(--gn)">Me deben: ${fmt(e)}</span><span style="color:var(--rd)">Debo: ${fmt(o)}</span></div><div style="font-size:15px;font-weight:600;margin-top:5px;color:${net>=0?'var(--gn)':'var(--rd)'}">Neto: ${fmt(net)}</div></div>`;}).join('');
+  const mH=manualItems.map(d=>`<div class="cr"><div style="flex:1"><span style="color:var(--rd)">${src(d.fromId).name}</span> debe a <span style="color:var(--gn)">${src(d.toId).name}</span>${d.concept?' · '+d.concept:''}${d.centerId?` <span class="badge bdg-ip">${center(d.centerId).name}</span>`:''}</div><div style="display:flex;align-items:center;gap:7px"><span style="font-weight:500">${fmt(d.amount)}</span>${isAdmin?`<button class="btn-sm" onclick="settleDebt('${d.id}')">Saldar</button><button class="btn-sm" onclick="openDebtModal('${d.id}')">✎</button><button class="btn-danger" onclick="deleteDebt('${d.id}')">✕</button>`:''}</div></div>`).join('');
+  const sH=sharedItems.map(({sh,p})=>`<div class="cr" style="opacity:.92"><div style="flex:1"><span style="color:var(--rd)">${src(p.personId).name}</span> falta su parte de <strong>${sh.concept}</strong>${sh.fronterId?` (a ${src(sh.fronterId).name})`:''}${sh.centerId?` <span class="badge bdg-ip">${center(sh.centerId).name}</span>`:''}</div><div style="display:flex;align-items:center;gap:7px"><span style="font-weight:500;color:var(--am)">${fmt(p.amount)}</span>${isAdmin?`<button class="btn-sm" onclick="toggleSharedPart('${sh.id}','${p.personId}')">Pagado</button>`:''}</div></div>`).join('');
+  const settled=debts.filter(d=>d.status==='settled').map(d=>`<div class="cr" style="opacity:.6"><div style="flex:1">${src(d.fromId).name} → ${src(d.toId).name}${d.concept?' · '+d.concept:''}</div><div style="display:flex;gap:6px;align-items:center"><span>${fmt(d.amount)}</span><span class="badge bdg-ok">Saldada</span>${isAdmin?`<button class="btn-sm" onclick="settleDebt('${d.id}')">Reabrir</button>`:''}</div></div>`).join('');
+  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px"><div class="st" style="margin:0">¿Cuánto debo / me deben? ${tp}</div>${isAdmin?`<button class="btn-p" style="font-size:10px;padding:4px 10px" onclick="openDebtModal('')">+ Registrar deuda</button>`:''}</div>${tips['db']?`<div class="tb-box">Regla de la casa: lo que no está aquí, no cuenta. Las partes pendientes de gastos compartidos se suman automáticamente.</div>`:''}${tabs}<div class="sg g3">${cards}</div><div class="card" style="margin-top:11px"><div class="st">Detalle de pendientes</div>${mH}${sH}${!mH&&!sH?'<div class="empty">Sin deudas pendientes 🎉</div>':''}</div>${settled?`<div class="card"><div class="st">Saldadas</div>${settled}</div>`:''}`;
+}
+function openDebtModal(editId){
+  const d=editId?debts.find(x=>x.id===editId):null;
+  const sO=sel=>sources.map(s=>`<option value="${s.id}" ${sel===s.id?'selected':''}>${s.name}</option>`).join('');
+  document.getElementById('modalBox').innerHTML=`<div class="modal-t">${d?'Editar deuda':'Registrar deuda'}</div>
+  <div class="sg g2"><div class="fg"><label class="fl">¿Quién debe?</label><select id="db-from">${sO(d?d.fromId:null)}</select></div><div class="fg"><label class="fl">¿A quién?</label><select id="db-to">${sO(d?d.toId:null)}</select></div></div>
+  <div class="sg g2"><div class="fg"><label class="fl">Monto</label><input type="number" id="db-amt" value="${d?d.amount:''}" step="0.01" placeholder="0.00"></div><div class="fg"><label class="fl">Centro</label><select id="db-center">${centerOpts(d?d.centerId:null)}</select></div></div>
+  <div class="fg"><label class="fl">Concepto</label><input type="text" id="db-concept" value="${d?(d.concept||'').replace(/"/g,'&quot;'):''}" placeholder="Motivo de la deuda"></div>
+  <div class="fg"><label class="fl">Notas</label><textarea id="db-notes">${d?d.notes||'':''}</textarea></div>
+  <div id="db-msg" style="font-size:11px;color:var(--rd);min-height:14px;margin-bottom:7px"></div>
+  <div class="ma">${d?`<button class="btn-danger" onclick="deleteDebt('${d.id}')">Eliminar</button>`:''}<button class="btn-s" onclick="closeModal()">Cancelar</button><button class="btn-p" onclick="saveDebt('${editId||''}')">Guardar</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+async function saveDebt(editId){
+  const fromId=val('db-from'),toId=val('db-to'),amount=parseFloat(val('db-amt')),concept=val('db-concept')||'',centerId=val('db-center')||null,notes=val('db-notes')||'';
+  const msg=document.getElementById('db-msg');
+  if(fromId===toId){msg.textContent='Deben ser personas distintas';return;}
+  if(!amount||amount<=0){msg.textContent='Monto inválido';return;}
+  if(editId){const d=debts.find(x=>x.id===editId);if(d)Object.assign(d,{fromId,toId,amount,concept,centerId,notes});}
+  else debts.push({id:uid(),fromId,toId,amount,concept,centerId,notes,status:'pending',date:today()});
+  await persist();closeModal();render();
+}
+async function settleDebt(id){const d=debts.find(x=>x.id===id);if(!d)return;d.status=d.status==='pending'?'settled':'pending';d.settledDate=d.status==='settled'?today():null;await persist();render();}
+async function deleteDebt(id){if(!confirm('¿Eliminar esta deuda?'))return;debts=debts.filter(d=>d.id!==id);await persist();closeModal();render();}
+
+// ── ALIMENTO (TURNOS) ─────────────────────────────────
+function renderFood(){
+  const tp=tipH('fd','Lleva el turno de quién compra el alimento de los animales. Cada compra pasa el turno al siguiente.');
+  const rots=foodRotations.map(rot=>{
+    const next=nextFoodPayer(rot);
+    const purchases=foodPurchases.filter(f=>f.rotId===rot.id).sort((a,b)=>a.date<b.date?1:-1);
+    const counts=rot.members.map(m=>`${src(m).name}: ${purchases.filter(p=>p.payerId===m).length}`).join(' · ');
+    const hist=purchases.slice(0,12).map(p=>`<div class="cr"><div style="flex:1"><span class="dot" style="background:${src(p.payerId).color}"></span> ${src(p.payerId).name} · ${fmtD(p.date)}${p.notes?' · '+p.notes:''}</div><div style="display:flex;gap:6px;align-items:center"><span style="font-weight:500;color:var(--rd)">${fmt(p.amount)}</span>${isAdmin?`<button class="btn-sm" onclick="openFoodModal('${p.id}','${rot.id}')">✎</button><button class="btn-danger" onclick="deleteFood('${p.id}')">✕</button>`:''}</div></div>`).join('')||'<div class="empty">Sin compras registradas</div>';
+    return`<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px"><div><div style="font-size:13px;font-weight:600">🐾 ${rot.name}</div><div style="font-size:10px;color:var(--tx2);margin-top:2px">Se turnan: ${rot.members.map(m=>src(m).name).join(' ↔ ')}</div></div>${isAdmin?`<button class="btn-p" style="font-size:10px;padding:4px 10px" onclick="openFoodModal('','${rot.id}')">+ Registrar compra</button>`:''}</div>
+    ${next?`<div class="ib ig" style="display:flex;align-items:center;justify-content:space-between"><span>Próximo turno — le toca a:</span><strong style="font-size:15px">${src(next).name}</strong></div>`:''}
+    <div style="font-size:10px;color:var(--tx2);margin:8px 0 5px">Compras registradas — ${counts}</div>
+    ${hist}</div>`;
+  }).join('');
+  return`<div class="st" style="margin-bottom:9px">Alimento — turnos ${tp}</div>${tips['fd']?`<div class="tb-box">El turno avanza solo: si la última compra la hizo Papá, ahora le toca a Germán, y así sucesivamente. Es para que nunca haya duda de a quién le toca pagar la siguiente tanda.</div>`:''}${rots}`;
+}
+function openFoodModal(editId,rotId){
+  const f=editId?foodPurchases.find(x=>x.id===editId):null;
+  const rot=foodRotations.find(r=>r.id===(rotId||(f&&f.rotId)));if(!rot)return;
+  const defPayer=f?f.payerId:nextFoodPayer(rot);
+  const sO=rot.members.map(m=>`<option value="${m}" ${defPayer===m?'selected':''}>${src(m).name}</option>`).join('');
+  document.getElementById('modalBox').innerHTML=`<div class="modal-t">${f?'Editar compra':'Registrar compra de alimento'}</div>
+  <div class="sg g2"><div class="fg"><label class="fl">¿Quién pagó?</label><select id="fd-payer">${sO}</select></div><div class="fg"><label class="fl">Monto</label><input type="number" id="fd-amt" value="${f?f.amount:''}" step="0.01" placeholder="0.00"></div></div>
+  <div class="sg g2"><div class="fg"><label class="fl">Fecha</label><input type="date" id="fd-date" value="${f?f.date:today()}"></div><div class="fg"><label class="fl">Centro</label><select id="fd-center">${centerOpts(f?f.centerId:rot.centerId)}</select></div></div>
+  <div class="fg"><label class="fl">Marca / notas</label><input type="text" id="fd-notes" value="${f?(f.notes||'').replace(/"/g,'&quot;'):''}" placeholder="Ej: 2 bultos Dog Chow"></div>
+  <div id="fd-msg" style="font-size:11px;color:var(--rd);min-height:14px;margin-bottom:7px"></div>
+  <div class="ma">${f?`<button class="btn-danger" onclick="deleteFood('${f.id}')">Eliminar</button>`:''}<button class="btn-s" onclick="closeModal()">Cancelar</button><button class="btn-p" onclick="saveFood('${editId||''}','${rot.id}')">Guardar</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+async function saveFood(editId,rotId){
+  const payerId=val('fd-payer'),amount=parseFloat(val('fd-amt')),date=val('fd-date'),centerId=val('fd-center')||null,notes=val('fd-notes')||'';
+  const msg=document.getElementById('fd-msg');
+  if(!amount||amount<=0){msg.textContent='Monto inválido';return;}
+  if(!date){msg.textContent='Selecciona la fecha';return;}
+  if(editId){const f=foodPurchases.find(x=>x.id===editId);if(f)Object.assign(f,{payerId,amount,date,centerId,notes});}
+  else foodPurchases.push({id:uid(),rotId,payerId,amount,date,centerId,notes});
+  await persist();closeModal();render();
+}
+async function deleteFood(id){if(!confirm('¿Eliminar este registro de compra?'))return;foodPurchases=foodPurchases.filter(f=>f.id!==id);await persist();closeModal();render();}
+
+// ── EDITAR / BORRAR MOVIMIENTO ────────────────────────
+function openTxModal(id){
+  if(!isAdmin)return;
+  const t=txs.find(x=>x.id===id);if(!t)return;
+  let typeFields='';
+  if(t.type==='expense'||t.type==='income'){
+    const cList=cats.filter(c=>c.type===t.type);
+    typeFields=`<div class="sg g2"><div class="fg"><label class="fl">Categoría</label><select id="et-cat">${cList.map(c=>`<option value="${c.id}" ${t.categoryId===c.id?'selected':''}>${c.name}</option>`).join('')}</select></div><div class="fg"><label class="fl">Fuente</label><select id="et-src">${sources.map(s=>`<option value="${s.id}" ${t.srcId===s.id?'selected':''}>${s.name}</option>`).join('')}</select></div></div><div class="fg"><label class="fl">Centro</label><select id="et-ce">${centerOpts(t.centerId)}</select></div>`;
+  }else{typeFields=`<div class="ib ia">Este tipo (${t.type}) solo permite editar monto, fecha y descripción aquí. Para cambiar fuentes/presupuestos, bórralo y créalo de nuevo.</div>`;}
+  document.getElementById('modalBox').innerHTML=`<div class="modal-t">Editar movimiento</div>
+  <div class="sg g2"><div class="fg"><label class="fl">Monto</label><input type="number" id="et-am" value="${t.amount}" step="0.01"></div><div class="fg"><label class="fl">Fecha</label><input type="date" id="et-dt" value="${t.date}"></div></div>
+  ${typeFields}
+  <div class="fg"><label class="fl">Descripción</label><input type="text" id="et-dc" value="${(t.desc||'').replace(/"/g,'&quot;')}"></div>
+  <div class="fg"><label class="fl">Notas</label><textarea id="et-nt">${t.notes||''}</textarea></div>
+  <div id="et-msg" style="font-size:11px;color:var(--rd);min-height:14px;margin-bottom:7px"></div>
+  <div class="ma"><button class="btn-danger" onclick="deleteTx('${t.id}')">Eliminar</button><button class="btn-s" onclick="closeModal()">Cancelar</button><button class="btn-p" onclick="saveTxEdit('${t.id}')">Guardar</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+async function saveTxEdit(id){
+  const t=txs.find(x=>x.id===id);if(!t)return;
+  const am=parseFloat(val('et-am')),dt=val('et-dt'),msg=document.getElementById('et-msg');
+  if(!am||am<=0){msg.textContent='Monto inválido';return;}
+  if(!dt){msg.textContent='Fecha inválida';return;}
+  t.amount=am;t.date=dt;t.desc=val('et-dc')||'';t.notes=val('et-nt')||'';
+  if(t.type==='expense'||t.type==='income'){t.categoryId=val('et-cat');t.srcId=val('et-src');t.centerId=val('et-ce')||null;}
+  await persist();closeModal();render();
+}
+async function deleteTx(id){if(!confirm('¿Eliminar este movimiento? No se puede deshacer.'))return;txs=txs.filter(x=>x.id!==id);await persist();closeModal();render();}
+
+// ── CENTROS + RESPALDO ────────────────────────────────
+async function addCenter(){const n=prompt('Nombre del nuevo centro:');if(!n||!n.trim())return;centers.push({id:uid(),name:n.trim()});await persist();render();}
+async function renameCenter(id){const c=centers.find(x=>x.id===id);if(!c)return;const n=prompt('Nuevo nombre del centro:',c.name);if(!n||!n.trim())return;c.name=n.trim();await persist();render();}
+async function delCenter(id){if(!confirm('¿Eliminar este centro? Los movimientos ligados quedarán sin centro.'))return;centers=centers.filter(c=>c.id!==id);await persist();render();}
+function exportData(){const blob=new Blob([JSON.stringify(getAll(),null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='familiafinanzas-respaldo-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();}
+function exportCSV(){const rows=[['Fecha','Tipo','Monto','Fuente','Categoria','Centro','Descripcion','Notas']];txs.forEach(t=>rows.push([t.date,t.type,t.amount,src(t.srcId).name,t.categoryId?cat(t.categoryId).name:'',t.centerId?center(t.centerId).name:'',(t.desc||'').replace(/[\n\r]/g,' '),(t.notes||'').replace(/[\n\r]/g,' ')]));const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='movimientos-'+today()+'.csv';document.body.appendChild(a);a.click();a.remove();}
+function triggerImport(){document.getElementById('importFile').click();}
+async function importData(ev){
+  const file=ev.target.files[0];if(!file)return;
+  try{
+    const d=JSON.parse(await file.text());
+    if(!confirm('Esto REEMPLAZARÁ todos los datos actuales con los del respaldo. ¿Continuar?')){ev.target.value='';return;}
+    sources=d.sources||sources;cats=d.categories||cats;txs=(d.transactions||[]).map(t=>({...t,amount:parseFloat(t.amount)||0}));budgets=d.budgets||[];loans=d.loans||[];tasks=d.tasks||[];recurringTasks=d.recurringTasks||[];fixedExpenses=d.fixedExpenses||[];fixedContribs=d.fixedContribs||fixedContribs;centers=d.centers||centers;shared=d.shared||[];debts=d.debts||[];foodRotations=d.foodRotations||foodRotations;foodPurchases=d.foodPurchases||[];
+    await persist();render();alert('Respaldo importado correctamente.');
+  }catch(e){alert('Error al importar: '+e.message);}
+  ev.target.value='';
 }
 
 init();
