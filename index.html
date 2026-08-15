@@ -189,6 +189,7 @@ textarea{resize:vertical;min-height:55px}
   <button class="ni" id="nav-compartidos" onclick="nav('compartidos')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="4" cy="4" r="2.3"/><circle cx="10" cy="4" r="2.3"/><path d="M1 13c0-2 1.3-3.5 3-3.5S7 11 7 13M7 13c0-2 1.3-3.5 3-3.5s3 1.5 3 3.5"/></svg>Gastos compartidos</button>
   <button class="ni" id="nav-deudas" onclick="nav('deudas')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h10M2 7h10M2 10h6"/><circle cx="11" cy="10.5" r="2"/></svg>Deudas</button>
   <button class="ni" id="nav-alimento" onclick="nav('alimento')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 1v5a2 2 0 01-2 2v5M2.5 1v4M5.5 1v4M10 1c-1.5 0-2 2-2 4s.5 3 2 3 2-1 2-3-.5-4-2-4zM10 8v5"/></svg>Alimento (turnos)</button>
+  <button class="ni" id="nav-compras" onclick="nav('compras')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 1h2l1.5 8h6l1.5-5H4"/><circle cx="5.5" cy="12" r="1"/><circle cx="10.5" cy="12" r="1"/></svg>Lista de compras</button>
   <div class="ns">Familia</div>
   <button class="ni" id="nav-tareas" onclick="nav('tareas')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><polyline points="2,7 5,10 12,3"/><rect x="1" y="1" width="12" height="12" rx="1"/></svg>Tareas</button>
   <button class="ni" id="nav-recurrentes" onclick="nav('recurrentes')"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 7a5 5 0 1 0 5-5"/><polyline points="4,2 2,7 7,7"/></svg>Recurrentes</button>
@@ -232,13 +233,14 @@ const DEF={
   sources:[{id:'s1',name:'Mamá (EE.UU.)',color:'#1D9E75',desc:'Envíos desde EE.UU.'},{id:'s2',name:'Papá',color:'#378ADD',desc:'Aportaciones'},{id:'s3',name:'Personal',color:'#BA7517',desc:'Ingresos propios'}],
   categories:[{id:'c1',name:'Hogar',type:'expense'},{id:'c2',name:'Alimentación',type:'expense'},{id:'c3',name:'Transporte',type:'expense'},{id:'c4',name:'Salud',type:'expense'},{id:'c5',name:'Educación',type:'expense'},{id:'c6',name:'Servicios',type:'expense'},{id:'c7',name:'Ropa',type:'expense'},{id:'c8',name:'Entretenimiento',type:'expense'},{id:'c9',name:'Personal',type:'expense'},{id:'c10',name:'Otros',type:'expense'},{id:'c11',name:'Envío',type:'income'},{id:'c12',name:'Sueldo',type:'income'},{id:'c13',name:'Freelance',type:'income'},{id:'c14',name:'Otros ingresos',type:'income'}],
   transactions:[],budgets:[],loans:[],tasks:[],recurringTasks:[],fixedExpenses:[],fixedContribs:[{id:'fc1',srcId:'s1',amount:1688},{id:'fc2',srcId:'s3',amount:500},{id:'fc3',srcId:'s2',amount:529}],
-  centers:[{id:'ce1',name:'Casa'},{id:'ce2',name:'Trikles'}],shared:[],debts:[],foodRotations:[{id:'fr1',name:'Alimento de animales',members:['s2','s3'],centerId:'ce2'}],foodPurchases:[]
+  centers:[{id:'ce1',name:'Casa'},{id:'ce2',name:'Trikles'}],shared:[],debts:[],foodRotations:[{id:'fr1',name:'Alimento de animales',members:['s2','s3'],centerId:'ce2'}],foodPurchases:[],
+  purchaseRequests:[],requesters:['Gabriela','Papá','Mamá','Germán']
 };
 
 let sources=[],cats=[],txs=[],budgets=[],loans=[],tasks=[],recurringTasks=[],fixedExpenses=[],fixedContribs=[];
-let centers=[],shared=[],debts=[],foodRotations=[],foodPurchases=[];
+let centers=[],shared=[],debts=[],foodRotations=[],foodPurchases=[],purchaseRequests=[],requesters=[];
 let isAdmin=false,adminPin='',cv='dashboard',txType='expense',rp='month',wo=0,syncing=false;
-let tips={},chartMode='bar',taskView='list',execPeriod='month',debtCenter='all',sharedCenter='all';
+let tips={},chartMode='bar',taskView='list',execPeriod='month',debtCenter='all',sharedCenter='all',reqCenter='all';
 
 // ── API ──────────────────────────────────────────────
 async function readBin(){
@@ -250,11 +252,11 @@ async function readBin(){
 async function writeBin(data){
   await fetch(`${BASE}/${BIN}`,{method:'PUT',headers:H(),body:JSON.stringify(data)});
 }
-function getAll(){return{sources,categories:cats,transactions:txs,budgets,loans,tasks,recurringTasks,fixedExpenses,fixedContribs,centers,shared,debts,foodRotations,foodPurchases};}
+function getAll(){return{sources,categories:cats,transactions:txs,budgets,loans,tasks,recurringTasks,fixedExpenses,fixedContribs,centers,shared,debts,foodRotations,foodPurchases,purchaseRequests,requesters};}
 async function persist(){saveCache();await writeBin(getAll());}
 function saveCache(){localStorage.setItem(CACHE_K,JSON.stringify(getAll()));}
 function loadCache(){
-  try{const c=JSON.parse(localStorage.getItem(CACHE_K));if(c){sources=c.sources||DEF.sources;cats=c.categories||DEF.categories;txs=(c.transactions||[]).map(t=>({...t,amount:parseFloat(t.amount)||0}));budgets=(c.budgets||[]).map(b=>({...b,amount:parseFloat(b.amount)||0}));loans=(c.loans||[]).map(l=>({...l,amount:parseFloat(l.amount)||0}));tasks=c.tasks||[];recurringTasks=c.recurringTasks||[];fixedExpenses=c.fixedExpenses||[];fixedContribs=c.fixedContribs||DEF.fixedContribs;centers=c.centers||DEF.centers;shared=c.shared||[];debts=c.debts||[];foodRotations=c.foodRotations||DEF.foodRotations;foodPurchases=c.foodPurchases||[];}}catch{}
+  try{const c=JSON.parse(localStorage.getItem(CACHE_K));if(c){sources=c.sources||DEF.sources;cats=c.categories||DEF.categories;txs=(c.transactions||[]).map(t=>({...t,amount:parseFloat(t.amount)||0}));budgets=(c.budgets||[]).map(b=>({...b,amount:parseFloat(b.amount)||0}));loans=(c.loans||[]).map(l=>({...l,amount:parseFloat(l.amount)||0}));tasks=c.tasks||[];recurringTasks=c.recurringTasks||[];fixedExpenses=c.fixedExpenses||[];fixedContribs=c.fixedContribs||DEF.fixedContribs;centers=c.centers||DEF.centers;shared=c.shared||[];debts=c.debts||[];foodRotations=c.foodRotations||DEF.foodRotations;foodPurchases=c.foodPurchases||[];purchaseRequests=c.purchaseRequests||[];requesters=c.requesters||DEF.requesters;}}catch{}
 }
 function loadCfg(){try{return JSON.parse(localStorage.getItem(CFG_K));}catch{return null;}}
 function saveCfg(){localStorage.setItem(CFG_K,JSON.stringify({pin:adminPin}));}
@@ -296,6 +298,7 @@ async function setupSave(){
     loans=(data.loans||[]).map(l=>({...l,amount:parseFloat(l.amount)||0}));
     tasks=data.tasks||[];recurringTasks=data.recurringTasks||[];fixedExpenses=data.fixedExpenses||[];fixedContribs=data.fixedContribs||DEF.fixedContribs;
     centers=data.centers||DEF.centers;shared=data.shared||[];debts=data.debts||[];foodRotations=data.foodRotations||DEF.foodRotations;foodPurchases=data.foodPurchases||[];
+    purchaseRequests=data.purchaseRequests||[];requesters=data.requesters||DEF.requesters;
     adminPin=pin;saveCfg();saveCache();
     document.getElementById('setupSc').style.display='none';
     document.getElementById('appRoot').style.display='block';
@@ -313,6 +316,7 @@ async function syncData(fb){
     loans=(d.loans||[]).map(l=>({...l,amount:parseFloat(l.amount)||0}));
     tasks=d.tasks||[];recurringTasks=d.recurringTasks||[];fixedExpenses=d.fixedExpenses||[];fixedContribs=d.fixedContribs||DEF.fixedContribs;
     centers=d.centers||DEF.centers;shared=d.shared||[];debts=d.debts||[];foodRotations=d.foodRotations||DEF.foodRotations;foodPurchases=d.foodPurchases||[];
+    purchaseRequests=d.purchaseRequests||[];requesters=d.requesters||DEF.requesters;
     saveCache();setSS('ok');render();
   }catch(e){setSS('err');if(fb)alert('Error sync: '+e.message);}
   syncing=false;
@@ -377,7 +381,7 @@ function nav(view){
   cv=view;closeSB();
   document.querySelectorAll('.ni').forEach(el=>el.classList.remove('active'));
   const nb=document.getElementById('nav-'+view);if(nb)nb.classList.add('active');
-  const titles={dashboard:'Dashboard',nuevo:'Nuevo movimiento',historial:'Historial',presupuestos:'Presupuestos',fuentes:'Por fuente',prestamos:'Préstamos',reportes:'Reportes',tareas:'Tareas',recurrentes:'Tareas recurrentes',fijos:'Gastos fijos',exec:'Tablero ejecutivo',compartidos:'Gastos compartidos',deudas:'Deudas',alimento:'Alimento — turnos',config:'Configuración'};
+  const titles={dashboard:'Dashboard',nuevo:'Nuevo movimiento',historial:'Historial',presupuestos:'Presupuestos',fuentes:'Por fuente',prestamos:'Préstamos',reportes:'Reportes',tareas:'Tareas',recurrentes:'Tareas recurrentes',fijos:'Gastos fijos',exec:'Tablero ejecutivo',compartidos:'Gastos compartidos',deudas:'Deudas',alimento:'Alimento — turnos',compras:'Lista de compras',config:'Configuración'};
   document.getElementById('tb-t').textContent=titles[view]||view;
   destroyCharts();render();
 }
@@ -402,6 +406,7 @@ function render(){
   else if(cv==='compartidos')el.innerHTML=renderShared();
   else if(cv==='deudas')el.innerHTML=renderDebts();
   else if(cv==='alimento')el.innerHTML=renderFood();
+  else if(cv==='compras')el.innerHTML=renderRequests();
   else if(cv==='config')el.innerHTML=renderConfig();
   afterRender();
 }
@@ -774,6 +779,7 @@ function renderConfig(){
     <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px"><div class="st" style="margin:0">Centros (Casa / Trikles)</div><button class="btn-p" style="font-size:10px;padding:4px 10px" onclick="addCenter()">+ Agregar</button></div>${centers.map(c=>`<div class="cfg-r"><span style="font-size:12px">${c.name}</span><div style="display:flex;gap:5px"><button class="btn-sm" onclick="renameCenter('${c.id}')">Renombrar</button><button class="btn-danger" onclick="delCenter('${c.id}')">Eliminar</button></div></div>`).join('')||'<div class="empty">Sin centros</div>'}</div>
     <div class="card"><div class="st">Respaldo de datos</div><div style="font-size:11px;color:var(--tx2);margin-bottom:9px">Descarga una copia de seguridad o restaura desde un respaldo. Hazlo seguido para no perder nada.</div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn-p" style="font-size:11px" onclick="exportData()">⬇ Exportar respaldo (JSON)</button><button class="btn-s" onclick="exportCSV()">⬇ Movimientos (Excel/CSV)</button><button class="btn-warn" onclick="triggerImport()">⬆ Importar respaldo</button></div></div>
   </div>
+  <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px"><div class="st" style="margin:0">Solicitantes (quién puede pedir compras)</div><button class="btn-p" style="font-size:10px;padding:4px 10px" onclick="addRequester()">+ Agregar</button></div><div style="font-size:10px;color:var(--tx2);margin-bottom:7px">Nombres que aparecen en "¿Quién lo pide?" al agregar a la lista de compras (ej. Gabriela).</div>${(requesters||[]).map(n=>`<div class="cfg-r"><span style="font-size:12px">${n}</span><button class="btn-danger" onclick="delRequester('${n.replace(/'/g,"\\'")}')">Eliminar</button></div>`).join('')||'<div class="empty">Sin solicitantes</div>'}</div>
   <div class="card"><div class="st">Cambiar PIN</div><div class="sg g2"><div class="fg"><label class="fl">PIN actual</label><input type="password" id="p-old" maxlength="4" placeholder="••••"></div><div class="fg"><label class="fl">PIN nuevo</label><input type="password" id="p-new" maxlength="4" placeholder="••••"></div></div><div id="p-msg" style="font-size:11px;min-height:14px;margin-bottom:7px"></div><button class="btn-p" onclick="changePin()">Actualizar PIN</button></div>`;
 }
 
@@ -1195,12 +1201,15 @@ function renderExec(){
   const grand=Object.values(paid).reduce((a,p)=>a+p.total,0)||1;
   const foodBanner=foodRotations.map(rot=>{const n=nextFoodPayer(rot);return n?`<div class="ib ip" style="display:flex;justify-content:space-between;align-items:center"><span>🐾 Próxima compra de ${rot.name}:</span><strong style="font-size:13px">${src(n).name}</strong></div>`:'';}).join('');
   const pendShared=shared.reduce((a,sh)=>a+sh.parts.filter(p=>!p.paid).reduce((b,p)=>b+p.amount,0),0);
+  const reqPend=centers.map(c=>({name:c.name,n:purchaseRequests.filter(r=>r.status!=='bought'&&r.centerId===c.id).length})).filter(x=>x.n>0);
+  const reqBanner=reqPend.length?`<div class="ib ib2" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>🛒 Por comprar:</span><span>${reqPend.map(x=>`${x.name}: <strong>${x.n}</strong>`).join(' · ')} <span style="cursor:pointer;text-decoration:underline" onclick="nav('compras')">ver lista</span></span></div>`:'';
   const cards=sources.map(s=>{const d=paid[s.id]||{total:0,byCenter:{}};const pct=Math.round((d.total/grand)*100);const lines=centers.map(c=>`<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx2)"><span>${c.name}</span><span>${fmt(d.byCenter[c.id]||0)}</span></div>`).join('')+(d.byCenter['none']?`<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx3)"><span>Sin centro</span><span>${fmt(d.byCenter['none'])}</span></div>`:'');return`<div class="bc" style="border-left:3px solid ${s.color}"><div class="bcs"><span class="dot" style="background:${s.color}"></span>${s.name}</div><div class="bca">${fmt(d.total)}</div><div class="bcm">${pct}% del total pagado</div><div style="margin-top:7px;border-top:0.5px solid var(--br);padding-top:6px">${lines}</div></div>`;}).join('');
   const periodBtns=['month','year','all'].map(p=>`<button class="per-btn ${execPeriod===p?'sel':''}" onclick="execPeriod='${p}';render()">${{month:'Este mes',year:'Este año',all:'Todo'}[p]}</button>`).join('');
   const tp=tipH('ex','Vista para tu papá: cuánto ha pagado cada quién en el período, separado por centro.');
   return`<div class="st" style="margin-bottom:9px">Tablero ejecutivo ${tp}</div>${tips['ex']?`<div class="tb-box">Suma lo que cada persona pagó: gastos directos + sus partes de gastos compartidos + compras de alimento. Cambia el período con los botones.</div>`:''}
   <div class="per-row">${periodBtns}</div>
   ${foodBanner}
+  ${reqBanner}
   ${pendShared>0?`<div class="ib ia">⚠ Hay <strong>${fmt(pendShared)}</strong> en partes pendientes de gastos compartidos. <span style="cursor:pointer;text-decoration:underline" onclick="nav('compartidos')">Ver detalle</span></div>`:''}
   <div class="sg g3" style="margin-top:4px">${cards}</div>
   <div class="card"><div class="st">Quién paga qué — comparativo</div>${sources.map(s=>{const d=paid[s.id]||{total:0};const pct=Math.round((d.total/grand)*100);return`<div class="bw"><div class="bl2"><span style="display:flex;align-items:center;gap:5px"><span class="dot" style="background:${s.color}"></span>${s.name}</span><span>${fmt(d.total)} (${pct}%)</span></div><div class="bt"><div class="bf" style="width:${pct}%;background:${s.color}"></div></div></div>`;}).join('')}</div>`;
@@ -1375,11 +1384,100 @@ async function importData(ev){
   try{
     const d=JSON.parse(await file.text());
     if(!confirm('Esto REEMPLAZARÁ todos los datos actuales con los del respaldo. ¿Continuar?')){ev.target.value='';return;}
-    sources=d.sources||sources;cats=d.categories||cats;txs=(d.transactions||[]).map(t=>({...t,amount:parseFloat(t.amount)||0}));budgets=d.budgets||[];loans=d.loans||[];tasks=d.tasks||[];recurringTasks=d.recurringTasks||[];fixedExpenses=d.fixedExpenses||[];fixedContribs=d.fixedContribs||fixedContribs;centers=d.centers||centers;shared=d.shared||[];debts=d.debts||[];foodRotations=d.foodRotations||foodRotations;foodPurchases=d.foodPurchases||[];
+    sources=d.sources||sources;cats=d.categories||cats;txs=(d.transactions||[]).map(t=>({...t,amount:parseFloat(t.amount)||0}));budgets=d.budgets||[];loans=d.loans||[];tasks=d.tasks||[];recurringTasks=d.recurringTasks||[];fixedExpenses=d.fixedExpenses||[];fixedContribs=d.fixedContribs||fixedContribs;centers=d.centers||centers;shared=d.shared||[];debts=d.debts||[];foodRotations=d.foodRotations||foodRotations;foodPurchases=d.foodPurchases||[];purchaseRequests=d.purchaseRequests||[];requesters=d.requesters||requesters;
     await persist();render();alert('Respaldo importado correctamente.');
   }catch(e){alert('Error al importar: '+e.message);}
   ev.target.value='';
 }
+
+// ── LISTA DE COMPRAS / SOLICITUDES ────────────────────
+function mlSearch(product){return 'https://listado.mercadolibre.com.mx/'+encodeURIComponent((product||'').trim());}
+function renderRequests(){
+  const tp=tipH('req','Aquí se anota lo que hace falta comprar para la Casa o para Trikles. Gabriela u otros pueden agregar sin PIN; los papás marcan lo comprado.');
+  let list=[...purchaseRequests];
+  if(reqCenter!=='all')list=list.filter(r=>r.centerId===reqCenter);
+  const pri={urgent:0,normal:1};
+  const pend=list.filter(r=>r.status!=='bought').sort((a,b)=>(pri[a.priority]||1)-(pri[b.priority]||1)||(a.createdDate<b.createdDate?1:-1));
+  const done=list.filter(r=>r.status==='bought').sort((a,b)=>((a.boughtDate||'')<(b.boughtDate||'')?1:-1));
+  const tabs=`<div class="tabs"><button class="tab ${reqCenter==='all'?'sact':''}" onclick="reqCenter='all';render()">Todo</button>${centers.map(c=>`<button class="tab ${reqCenter===c.id?'sact':''}" onclick="reqCenter='${c.id}';render()">${c.name}</button>`).join('')}</div>`;
+  const rowP=r=>{
+    const ce=r.centerId?center(r.centerId).name:'Sin centro';
+    const urgent=r.priority==='urgent',ordered=r.status==='ordered';
+    return`<div class="bud-c" style="${urgent?'border-left:3px solid var(--rd)':''}"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">${urgent?'🔴 ':''}${r.product}${r.qty?` <span style="color:var(--tx2);font-weight:400">· ${r.qty}</span>`:''}</div><div style="font-size:10px;color:var(--tx2);margin-top:2px"><span class="badge bdg-ip">${ce}</span>${ordered?' <span class="badge bdg-m">📦 Pedido</span>':''}${r.requestedBy?' · Pide: '+r.requestedBy:''} · ${fmtD(r.createdDate)}</div>${r.note?`<div style="font-size:10px;color:var(--tx2);margin-top:2px">${r.note}</div>`:''}</div>
+    <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap">
+      <a class="btn-sm" style="text-decoration:none" href="${r.link||mlSearch(r.product)}" target="_blank" rel="noopener">🔍 ${r.link?'Ver link':'Buscar en ML'}</a>
+      ${isAdmin?`${!ordered?`<button class="btn-warn" onclick="markOrdered('${r.id}')">📦 Pedido</button>`:''}<button class="btn-sm" onclick="openBuyModal('${r.id}')">✅ Comprado</button><button class="btn-sm" onclick="openRequestModal('${r.id}')">✎</button><button class="btn-danger" onclick="deleteRequest('${r.id}')">✕</button>`:''}
+    </div></div>`;
+  };
+  const rowD=r=>`<div class="cr"><div style="flex:1"><span style="text-decoration:line-through;color:var(--tx2)">${r.product}${r.qty?' · '+r.qty:''}</span> ${r.centerId?`<span class="badge bdg-ip">${center(r.centerId).name}</span>`:''}${r.txId?' <span class="badge bdg-ok">💵 gasto</span>':''}</div><div style="display:flex;gap:6px;align-items:center">${r.boughtDate?`<span style="font-size:10px;color:var(--tx2)">${fmtD(r.boughtDate)}</span>`:''}${isAdmin?`<button class="btn-warn" onclick="reopenRequest('${r.id}')">Reabrir</button><button class="btn-danger" onclick="deleteRequest('${r.id}')">✕</button>`:''}</div></div>`;
+  return`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px"><div class="st" style="margin:0">Lista de compras ${tp}</div><button class="btn-p" style="font-size:10px;padding:4px 10px" onclick="openRequestModal('')">+ Nueva solicitud</button></div>
+  ${tips['req']?`<div class="tb-box">Cualquiera puede agregar lo que falta (no necesita PIN). Los papás, como admin, marcan lo Pedido/Comprado y pueden registrar el gasto. Cada pendiente tiene botón para buscarlo en Mercado Libre.</div>`:''}
+  ${!isAdmin?`<div class="ib ig">Anota lo que haga falta con "+ Nueva solicitud". Solo los administradores marcan lo comprado.</div>`:''}
+  ${tabs}
+  <div class="st">Por comprar (${pend.length})</div>
+  ${pend.length?pend.map(rowP).join(''):'<div class="empty" style="padding:14px">Nada pendiente por comprar 🎉</div>'}
+  ${done.length?`<div class="st" style="margin-top:12px">Ya comprado (${done.length})</div><div class="card">${done.map(rowD).join('')}</div>`:''}`;
+}
+function openRequestModal(editId){
+  const r=editId?purchaseRequests.find(x=>x.id===editId):null;
+  const reqOpts=(requesters||[]).map(n=>`<option value="${n}" ${r&&r.requestedBy===n?'selected':''}>${n}</option>`).join('');
+  document.getElementById('modalBox').innerHTML=`<div class="modal-t">${r?'Editar solicitud':'¿Qué hace falta comprar?'}</div>
+  <div class="fg"><label class="fl">Producto / qué falta</label><input type="text" id="rq-prod" value="${r?(r.product||'').replace(/"/g,'&quot;'):''}" placeholder="Ej: Cloro, croquetas, focos..."></div>
+  <div class="sg g2"><div class="fg"><label class="fl">Cantidad (opcional)</label><input type="text" id="rq-qty" value="${r?(r.qty||'').replace(/"/g,'&quot;'):''}" placeholder="Ej: 2 bultos, 1 galón"></div><div class="fg"><label class="fl">Para (centro)</label><select id="rq-center">${centers.map(c=>`<option value="${c.id}" ${(r&&r.centerId===c.id)||(!r&&c.id==='ce1')?'selected':''}>${c.name}</option>`).join('')}</select></div></div>
+  <div class="sg g2"><div class="fg"><label class="fl">Prioridad</label><select id="rq-pri"><option value="normal" ${!r||r.priority==='normal'?'selected':''}>Normal</option><option value="urgent" ${r&&r.priority==='urgent'?'selected':''}>🔴 Urgente</option></select></div><div class="fg"><label class="fl">¿Quién lo pide?</label><select id="rq-by">${reqOpts}<option value="__otro">Otro...</option></select></div></div>
+  <div class="fg" id="rq-otro-wrap" style="display:none"><label class="fl">Nombre de quien pide</label><input type="text" id="rq-otro" placeholder="Escribe el nombre"></div>
+  <div class="fg"><label class="fl">Nota (opcional)</label><input type="text" id="rq-note" value="${r?(r.note||'').replace(/"/g,'&quot;'):''}" placeholder="Marca preferida, detalle..."></div>
+  <div class="fg"><label class="fl">Link de Mercado Libre (opcional)</label><input type="text" id="rq-link" value="${r?(r.link||'').replace(/"/g,'&quot;'):''}" placeholder="Pega el link si ya lo tienes"></div>
+  <div id="rq-msg" style="font-size:11px;color:var(--rd);min-height:14px;margin:7px 0"></div>
+  <div class="ma">${r&&isAdmin?`<button class="btn-danger" onclick="deleteRequest('${r.id}')">Eliminar</button>`:''}<button class="btn-s" onclick="closeModal()">Cancelar</button><button class="btn-p" onclick="saveRequest('${editId||''}')">Guardar</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+  const by=document.getElementById('rq-by');if(by)by.addEventListener('change',()=>{const w=document.getElementById('rq-otro-wrap');if(w)w.style.display=by.value==='__otro'?'block':'none';});
+}
+async function saveRequest(editId){
+  const product=val('rq-prod'),msg=document.getElementById('rq-msg');
+  if(!product||!product.trim()){msg.textContent='Escribe qué hace falta';return;}
+  let by=val('rq-by');if(by==='__otro')by=(val('rq-otro')||'').trim();
+  const data={product:product.trim(),qty:val('rq-qty')||'',centerId:val('rq-center')||null,priority:val('rq-pri')||'normal',requestedBy:by||'',note:val('rq-note')||'',link:(val('rq-link')||'').trim()};
+  if(editId){const r=purchaseRequests.find(x=>x.id===editId);if(r)Object.assign(r,data);}
+  else purchaseRequests.push({id:uid(),...data,status:'pending',createdDate:today(),boughtDate:null,boughtBy:null,txId:null});
+  await persist();closeModal();render();
+}
+async function markOrdered(id){const r=purchaseRequests.find(x=>x.id===id);if(!r)return;r.status='ordered';r.orderedDate=today();await persist();render();}
+function openBuyModal(id){
+  const r=purchaseRequests.find(x=>x.id===id);if(!r)return;
+  const sO=sources.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  const cO=cats.filter(c=>c.type==='expense').map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  document.getElementById('modalBox').innerHTML=`<div class="modal-t">Marcar comprado: ${r.product}</div>
+  <div class="ib ig">Opcional: si pones el monto, se registra como gasto y aparece en el Tablero y Deudas. Si lo dejas vacío, solo se marca comprado.</div>
+  <div class="sg g2"><div class="fg"><label class="fl">Monto (opcional)</label><input type="number" id="by-am" step="0.01" placeholder="0.00"></div><div class="fg"><label class="fl">Fecha</label><input type="date" id="by-dt" value="${today()}"></div></div>
+  <div class="sg g2"><div class="fg"><label class="fl">¿Quién pagó?</label><select id="by-src">${sO}</select></div><div class="fg"><label class="fl">Categoría</label><select id="by-cat">${cO}</select></div></div>
+  <div id="by-msg" style="font-size:11px;color:var(--rd);min-height:14px;margin:7px 0"></div>
+  <div class="ma"><button class="btn-s" onclick="closeModal()">Cancelar</button><button class="btn-p" onclick="confirmBuy('${id}')">Marcar comprado</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+async function confirmBuy(id){
+  const r=purchaseRequests.find(x=>x.id===id);if(!r)return;
+  const am=parseFloat(val('by-am'));
+  r.status='bought';r.boughtDate=val('by-dt')||today();
+  if(am&&am>0){
+    const tx={id:uid(),type:'expense',amount:am,date:r.boughtDate,srcId:val('by-src'),categoryId:val('by-cat'),budId:null,centerId:r.centerId||null,desc:r.product,notes:'Compra de lista'+(r.requestedBy?' (pidió '+r.requestedBy+')':'')};
+    txs.push(tx);r.txId=tx.id;
+  }
+  await persist();closeModal();render();
+}
+async function reopenRequest(id){
+  const r=purchaseRequests.find(x=>x.id===id);if(!r)return;
+  if(r.txId&&confirm('Este comprado tiene un gasto registrado. ¿Quitar también ese gasto de las finanzas?')){txs=txs.filter(t=>t.id!==r.txId);r.txId=null;}
+  r.status='pending';r.boughtDate=null;await persist();render();
+}
+async function deleteRequest(id){
+  const r=purchaseRequests.find(x=>x.id===id);
+  if(!confirm('¿Eliminar esta solicitud?'))return;
+  if(r&&r.txId&&confirm('Tenía un gasto ligado. ¿Quitar también ese gasto de las finanzas?')){txs=txs.filter(t=>t.id!==r.txId);}
+  purchaseRequests=purchaseRequests.filter(x=>x.id!==id);await persist();closeModal();render();
+}
+async function addRequester(){const n=prompt('Nombre de la persona que puede solicitar:');if(!n||!n.trim())return;requesters=requesters||[];if(!requesters.includes(n.trim()))requesters.push(n.trim());await persist();render();}
+async function delRequester(name){if(!confirm('¿Quitar a '+name+' de la lista de solicitantes?'))return;requesters=(requesters||[]).filter(n=>n!==name);await persist();render();}
 
 init();
 </script>
