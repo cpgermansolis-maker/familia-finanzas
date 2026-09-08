@@ -234,13 +234,13 @@ const DEF={
   categories:[{id:'c1',name:'Hogar',type:'expense'},{id:'c2',name:'Alimentación',type:'expense'},{id:'c3',name:'Transporte',type:'expense'},{id:'c4',name:'Salud',type:'expense'},{id:'c5',name:'Educación',type:'expense'},{id:'c6',name:'Servicios',type:'expense'},{id:'c7',name:'Ropa',type:'expense'},{id:'c8',name:'Entretenimiento',type:'expense'},{id:'c9',name:'Personal',type:'expense'},{id:'c10',name:'Otros',type:'expense'},{id:'c11',name:'Envío',type:'income'},{id:'c12',name:'Sueldo',type:'income'},{id:'c13',name:'Freelance',type:'income'},{id:'c14',name:'Otros ingresos',type:'income'}],
   transactions:[],budgets:[],loans:[],tasks:[],recurringTasks:[],fixedExpenses:[],fixedContribs:[{id:'fc1',srcId:'s1',amount:1688},{id:'fc2',srcId:'s3',amount:500},{id:'fc3',srcId:'s2',amount:529}],
   centers:[{id:'ce1',name:'Casa'},{id:'ce2',name:'Trikles'}],shared:[],debts:[],foodRotations:[{id:'fr1',name:'Alimento de animales',members:['s2','s3'],centerId:'ce2'}],foodPurchases:[],
-  purchaseRequests:[],requesters:['Gabriela','Papá','Mamá','Germán']
+  purchaseRequests:[],requesters:['Gabriela','Papá','Mamá','Germán'],contribPayments:[]
 };
 
 let sources=[],cats=[],txs=[],budgets=[],loans=[],tasks=[],recurringTasks=[],fixedExpenses=[],fixedContribs=[];
-let centers=[],shared=[],debts=[],foodRotations=[],foodPurchases=[],purchaseRequests=[],requesters=[];
+let centers=[],shared=[],debts=[],foodRotations=[],foodPurchases=[],purchaseRequests=[],requesters=[],contribPayments=[];
 let isAdmin=false,adminPin='',cv='dashboard',txType='expense',rp='month',wo=0,syncing=false;
-let tips={},chartMode='bar',taskView='list',execPeriod='month',debtCenter='all',sharedCenter='all',reqCenter='all';
+let tips={},chartMode='bar',taskView='list',execPeriod='month',debtCenter='all',sharedCenter='all',reqCenter='all',fjWo=0;
 
 // ── API ──────────────────────────────────────────────
 async function readBin(){
@@ -252,11 +252,11 @@ async function readBin(){
 async function writeBin(data){
   await fetch(`${BASE}/${BIN}`,{method:'PUT',headers:H(),body:JSON.stringify(data)});
 }
-function getAll(){return{sources,categories:cats,transactions:txs,budgets,loans,tasks,recurringTasks,fixedExpenses,fixedContribs,centers,shared,debts,foodRotations,foodPurchases,purchaseRequests,requesters};}
+function getAll(){return{sources,categories:cats,transactions:txs,budgets,loans,tasks,recurringTasks,fixedExpenses,fixedContribs,centers,shared,debts,foodRotations,foodPurchases,purchaseRequests,requesters,contribPayments};}
 async function persist(){saveCache();await writeBin(getAll());}
 function saveCache(){localStorage.setItem(CACHE_K,JSON.stringify(getAll()));}
 function loadCache(){
-  try{const c=JSON.parse(localStorage.getItem(CACHE_K));if(c){sources=c.sources||DEF.sources;cats=c.categories||DEF.categories;txs=(c.transactions||[]).map(t=>({...t,amount:parseFloat(t.amount)||0}));budgets=(c.budgets||[]).map(b=>({...b,amount:parseFloat(b.amount)||0}));loans=(c.loans||[]).map(l=>({...l,amount:parseFloat(l.amount)||0}));tasks=c.tasks||[];recurringTasks=c.recurringTasks||[];fixedExpenses=c.fixedExpenses||[];fixedContribs=c.fixedContribs||DEF.fixedContribs;centers=c.centers||DEF.centers;shared=c.shared||[];debts=c.debts||[];foodRotations=c.foodRotations||DEF.foodRotations;foodPurchases=c.foodPurchases||[];purchaseRequests=c.purchaseRequests||[];requesters=c.requesters||DEF.requesters;}}catch{}
+  try{const c=JSON.parse(localStorage.getItem(CACHE_K));if(c){sources=c.sources||DEF.sources;cats=c.categories||DEF.categories;txs=(c.transactions||[]).map(t=>({...t,amount:parseFloat(t.amount)||0}));budgets=(c.budgets||[]).map(b=>({...b,amount:parseFloat(b.amount)||0}));loans=(c.loans||[]).map(l=>({...l,amount:parseFloat(l.amount)||0}));tasks=c.tasks||[];recurringTasks=c.recurringTasks||[];fixedExpenses=c.fixedExpenses||[];fixedContribs=c.fixedContribs||DEF.fixedContribs;centers=c.centers||DEF.centers;shared=c.shared||[];debts=c.debts||[];foodRotations=c.foodRotations||DEF.foodRotations;foodPurchases=c.foodPurchases||[];purchaseRequests=c.purchaseRequests||[];requesters=c.requesters||DEF.requesters;contribPayments=c.contribPayments||[];}}catch{}
 }
 function loadCfg(){try{return JSON.parse(localStorage.getItem(CFG_K));}catch{return null;}}
 function saveCfg(){localStorage.setItem(CFG_K,JSON.stringify({pin:adminPin}));}
@@ -298,7 +298,7 @@ async function setupSave(){
     loans=(data.loans||[]).map(l=>({...l,amount:parseFloat(l.amount)||0}));
     tasks=data.tasks||[];recurringTasks=data.recurringTasks||[];fixedExpenses=data.fixedExpenses||[];fixedContribs=data.fixedContribs||DEF.fixedContribs;
     centers=data.centers||DEF.centers;shared=data.shared||[];debts=data.debts||[];foodRotations=data.foodRotations||DEF.foodRotations;foodPurchases=data.foodPurchases||[];
-    purchaseRequests=data.purchaseRequests||[];requesters=data.requesters||DEF.requesters;
+    purchaseRequests=data.purchaseRequests||[];requesters=data.requesters||DEF.requesters;contribPayments=data.contribPayments||[];
     adminPin=pin;saveCfg();saveCache();
     document.getElementById('setupSc').style.display='none';
     document.getElementById('appRoot').style.display='block';
@@ -316,7 +316,7 @@ async function syncData(fb){
     loans=(d.loans||[]).map(l=>({...l,amount:parseFloat(l.amount)||0}));
     tasks=d.tasks||[];recurringTasks=d.recurringTasks||[];fixedExpenses=d.fixedExpenses||[];fixedContribs=d.fixedContribs||DEF.fixedContribs;
     centers=d.centers||DEF.centers;shared=d.shared||[];debts=d.debts||[];foodRotations=d.foodRotations||DEF.foodRotations;foodPurchases=d.foodPurchases||[];
-    purchaseRequests=d.purchaseRequests||[];requesters=d.requesters||DEF.requesters;
+    purchaseRequests=d.purchaseRequests||[];requesters=d.requesters||DEF.requesters;contribPayments=d.contribPayments||[];
     saveCache();setSS('ok');render();
   }catch(e){setSS('err');if(fb)alert('Error sync: '+e.message);}
   syncing=false;
@@ -357,6 +357,18 @@ const fmtD=d=>new Date(d+'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',
 const today=()=>new Date().toISOString().split('T')[0];
 function getWK(off){const d=new Date();d.setDate(d.getDate()-d.getDay()+1+(off*7));const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dy=String(d.getDate()).padStart(2,'0');const d2=new Date(d);d2.setDate(d2.getDate()+6);const m2=String(d2.getMonth()+1).padStart(2,'0'),dy2=String(d2.getDate()).padStart(2,'0');return{key:`${y}-W${getIW(d)}`,label:`${dy}/${m} – ${dy2}/${m2}/${y}`};}
 function getIW(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));t.setUTCDate(t.getUTCDate()+4-(t.getUTCDay()||7));const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil((((t-y)/86400000)+1)/7);}
+// Semana de PAGO con corte los VIERNES: el periodo va de viernes a jueves. Cada viernes empieza un periodo nuevo (la palomita se reinicia). Acepta fecha de referencia opcional para pruebas.
+function getPayWeek(off,ref){
+  const d=ref?new Date(ref):new Date();
+  const back=(d.getDay()-5+7)%7; // días desde el viernes anterior (viernes=5)
+  d.setDate(d.getDate()-back+(off||0)*7);
+  const start=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  const end=new Date(start);end.setDate(end.getDate()+6);
+  const p=n=>String(n).padStart(2,'0');
+  const key='PW-'+start.getFullYear()+'-'+p(start.getMonth()+1)+'-'+p(start.getDate());
+  const label='vie '+p(start.getDate())+'/'+p(start.getMonth()+1)+' – jue '+p(end.getDate())+'/'+p(end.getMonth()+1)+'/'+end.getFullYear();
+  return{key,label};
+}
 
 function getBal(sid){
   let b=0;
@@ -1023,15 +1035,39 @@ function renderFijos() {
   const balance      = totalContrib - totalFixed;
   const tp = tipH('fj-tip', 'Los gastos fijos son los compromisos semanales del hogar: renta, luz, gas, etc. Aquí puedes ver cuánto aporta cada quien y en qué se usa ese dinero.');
 
-  // Contrib cards
-  const contribCards = fixedContribs.map(c => {
+  // ── Aportaciones semanales (dinámicas, con palomita) ──
+  const wk = getPayWeek(fjWo);
+  const weekPays = contribPayments.filter(p => p.weekKey === wk.key);
+  const recibidoSem = weekPays.reduce((a,p)=>a+p.amount,0);
+  const faltaSem = fixedContribs.reduce((a,c)=>{const pay=weekPays.find(p=>p.srcId===c.srcId);return a+(pay?0:c.amount);},0);
+  const aportCards = fixedContribs.length ? fixedContribs.map(c => {
     const s = src(c.srcId);
-    const pct = totalContrib > 0 ? Math.round((c.amount / totalContrib) * 100) : 0;
+    const pay = weekPays.find(p => p.srcId === c.srcId);
+    const paid = !!pay;
+    const diff = paid ? (pay.amount - c.amount) : 0;
+    const diffTxt = diff>0 ? `<span style="color:var(--gn)"> (+${fmt(diff)})</span>` : diff<0 ? `<span style="color:var(--rd)"> (${fmt(diff)})</span>` : '';
+    return `<div class="bc" style="border-left:3px solid ${s.color}">
+      <div class="bcs"><span class="dot" style="background:${s.color}"></span>${s.name}${isAdmin?`<button class="tip-btn" style="margin-left:auto" onclick="openContribModal('${c.id}')" title="Editar aporte esperado">✎</button>`:''}</div>
+      ${paid
+        ? `<div class="bca gn">✓ ${fmt(pay.amount)}${diffTxt}</div><div class="bcm">Ya aportó · esperado ${fmt(c.amount)}</div>`
+        : `<div class="bca rd">⏳ Debe ${fmt(c.amount)}</div><div class="bcm">Aún no manda su aporte</div>`}
+      ${isAdmin ? (paid
+        ? `<div style="display:flex;gap:5px;margin-top:6px"><button class="btn-sm" onclick="openContribPayModal('${c.srcId}')">Editar monto</button><button class="btn-warn" onclick="unmarkContrib('${c.srcId}')">Deshacer</button></div>`
+        : `<button class="btn-sm" style="margin-top:6px" onclick="markContribPaid('${c.srcId}')">✓ Marcar enviado</button>`) : ''}
+    </div>`;
+  }).join('') : '<div class="empty">Configura el aporte esperado de cada quién con el botón de abajo o en Configuración.</div>';
+
+  // ── Acumulado por persona ──
+  const acumCards = fixedContribs.map(c => {
+    const s = src(c.srcId);
+    const pays = contribPayments.filter(p => p.srcId === c.srcId);
+    const totalAport = pays.reduce((a,p)=>a+p.amount,0);
+    const saldo = pays.reduce((a,p)=>a+(p.amount-(p.expected!=null?p.expected:c.amount)),0);
+    const semanas = pays.length;
     return `<div class="bc" style="border-left:3px solid ${s.color}">
       <div class="bcs"><span class="dot" style="background:${s.color}"></span>${s.name}</div>
-      <div class="bca gn">${fmt(c.amount)}</div>
-      <div class="bcm">${pct}% del total</div>
-      ${isAdmin ? `<button class="btn-sm" style="margin-top:6px" onclick="openContribModal('${c.id}')">Editar aporte</button>` : ''}
+      <div class="bca">${fmt(totalAport)}</div>
+      <div class="bcm">${semanas} aporte(s) · ${saldo>0?`<span style="color:var(--gn)">+${fmt(saldo)} a favor</span>`:saldo<0?`<span style="color:var(--rd)">${fmt(Math.abs(saldo))} en contra</span>`:'al corriente'}</div>
     </div>`;
   }).join('');
 
@@ -1065,13 +1101,23 @@ function renderFijos() {
   ).join('');
 
   return `
-  <div class="st">Gastos fijos semanales ${tp}</div>
-  ${tips['fj-tip'] ? `<div class="tb-box">Registra aquí los compromisos fijos del hogar. Puedes ver el aporte de cada fuente y en qué se destina el dinero semana a semana.</div>` : ''}
+  <div class="st">Aportaciones semanales ${tp}</div>
+  ${tips['fj-tip'] ? `<div class="tb-box">Marca ✓ cuando cada quién ya mandó su aporte de la semana. Lo que no esté palomeado aparece como "Debe". Si mandan de más o de menos, edita el monto y se refleja en el acumulado. <strong>La semana de pago corre de viernes a jueves: cada viernes se reinician las palomitas y hay que volver a marcarlas.</strong></div>` : ''}
+  <div class="wn"><button onclick="fjWo--;render()">← Anterior</button><span>${wk.label}</span><button onclick="fjWo++;render()" ${fjWo>=0?'disabled':''}>Siguiente →</button></div>
+  <div class="sg g3" style="margin-bottom:9px">${aportCards}</div>
+  <div class="sg g3" style="margin-bottom:14px">
+    <div class="sc"><div class="sl">Esperado de la semana</div><div class="sv">${fmt(totalContrib)}</div></div>
+    <div class="sc"><div class="sl">Ya recibido</div><div class="sv gn">${fmt(recibidoSem)}</div></div>
+    <div class="sc"><div class="sl">Falta</div><div class="sv ${faltaSem>0?'rd':'gn'}">${fmt(faltaSem)}</div></div>
+  </div>
 
-  <div class="sg g3" style="margin-bottom:12px">${contribCards}</div>
+  <div class="st" style="margin-bottom:8px">Acumulado por persona ${tipH('fj-acum','Total que ha aportado cada quién y si va a favor (mandó de más) o en contra (mandó de menos) respecto a lo esperado.')}</div>
+  ${tips['fj-acum']?`<div class="tb-box">El saldo suma, semana a semana, la diferencia entre lo que mandó y lo esperado. "A favor" = tiene crédito; "en contra" = quedó debiendo.</div>`:''}
+  <div class="sg g3" style="margin-bottom:14px">${acumCards}</div>
 
-  <div class="sg g3">
-    <div class="sc"><div class="sl">Total aportes</div><div class="sv gn">${fmt(totalContrib)}</div></div>
+  <div class="st" style="margin-bottom:8px">Gastos fijos del hogar</div>
+  <div class="sg g3" style="margin-bottom:12px">
+    <div class="sc"><div class="sl">Aportes esperados/sem</div><div class="sv gn">${fmt(totalContrib)}</div></div>
     <div class="sc"><div class="sl">Total gastos fijos</div><div class="sv rd">${fmt(totalFixed)}</div></div>
     <div class="sc"><div class="sl">${balance >= 0 ? 'Sobrante' : 'Déficit'}</div><div class="sv ${balance >= 0 ? 'gn' : 'rd'}">${fmt(Math.abs(balance))}</div></div>
   </div>
@@ -1384,7 +1430,7 @@ async function importData(ev){
   try{
     const d=JSON.parse(await file.text());
     if(!confirm('Esto REEMPLAZARÁ todos los datos actuales con los del respaldo. ¿Continuar?')){ev.target.value='';return;}
-    sources=d.sources||sources;cats=d.categories||cats;txs=(d.transactions||[]).map(t=>({...t,amount:parseFloat(t.amount)||0}));budgets=d.budgets||[];loans=d.loans||[];tasks=d.tasks||[];recurringTasks=d.recurringTasks||[];fixedExpenses=d.fixedExpenses||[];fixedContribs=d.fixedContribs||fixedContribs;centers=d.centers||centers;shared=d.shared||[];debts=d.debts||[];foodRotations=d.foodRotations||foodRotations;foodPurchases=d.foodPurchases||[];purchaseRequests=d.purchaseRequests||[];requesters=d.requesters||requesters;
+    sources=d.sources||sources;cats=d.categories||cats;txs=(d.transactions||[]).map(t=>({...t,amount:parseFloat(t.amount)||0}));budgets=d.budgets||[];loans=d.loans||[];tasks=d.tasks||[];recurringTasks=d.recurringTasks||[];fixedExpenses=d.fixedExpenses||[];fixedContribs=d.fixedContribs||fixedContribs;centers=d.centers||centers;shared=d.shared||[];debts=d.debts||[];foodRotations=d.foodRotations||foodRotations;foodPurchases=d.foodPurchases||[];purchaseRequests=d.purchaseRequests||[];requesters=d.requesters||requesters;contribPayments=d.contribPayments||[];
     await persist();render();alert('Respaldo importado correctamente.');
   }catch(e){alert('Error al importar: '+e.message);}
   ev.target.value='';
@@ -1478,6 +1524,40 @@ async function deleteRequest(id){
 }
 async function addRequester(){const n=prompt('Nombre de la persona que puede solicitar:');if(!n||!n.trim())return;requesters=requesters||[];if(!requesters.includes(n.trim()))requesters.push(n.trim());await persist();render();}
 async function delRequester(name){if(!confirm('¿Quitar a '+name+' de la lista de solicitantes?'))return;requesters=(requesters||[]).filter(n=>n!==name);await persist();render();}
+
+// ── APORTACIONES SEMANALES (palomita + acumulado) ─────
+async function markContribPaid(srcId){
+  const wk=getPayWeek(fjWo);const c=fixedContribs.find(x=>x.srcId===srcId);const expected=c?c.amount:0;
+  if(contribPayments.some(p=>p.srcId===srcId&&p.weekKey===wk.key))return;
+  contribPayments.push({id:uid(),srcId,weekKey:wk.key,weekLabel:wk.label,amount:expected,expected,date:today(),note:''});
+  await persist();render();
+}
+async function unmarkContrib(srcId){
+  const wk=getPayWeek(fjWo);
+  if(!confirm('¿Quitar la palomita de esta aportación?'))return;
+  contribPayments=contribPayments.filter(p=>!(p.srcId===srcId&&p.weekKey===wk.key));
+  await persist();closeModal();render();
+}
+function openContribPayModal(srcId){
+  const wk=getPayWeek(fjWo);const c=fixedContribs.find(x=>x.srcId===srcId);const pay=contribPayments.find(p=>p.srcId===srcId&&p.weekKey===wk.key);const s=src(srcId);
+  document.getElementById('modalBox').innerHTML=`<div class="modal-t">Aportación de ${s.name}</div>
+  <div style="font-size:11px;color:var(--tx2);margin-bottom:9px">Semana ${wk.label}. Esperado: <strong>${fmt(c?c.amount:0)}</strong>. Ajusta si mandó de más o de menos.</div>
+  <div class="sg g2"><div class="fg"><label class="fl">Monto enviado</label><input type="number" id="cp-am" value="${pay?pay.amount:(c?c.amount:'')}" step="0.01"></div><div class="fg"><label class="fl">Fecha</label><input type="date" id="cp-dt" value="${pay?pay.date:today()}"></div></div>
+  <div class="fg"><label class="fl">Nota (opcional)</label><input type="text" id="cp-nt" value="${pay?(pay.note||'').replace(/"/g,'&quot;'):''}" placeholder="Ej: adelantó 2 semanas"></div>
+  <div id="cp-msg" style="font-size:11px;color:var(--rd);min-height:14px;margin:7px 0"></div>
+  <div class="ma">${pay?`<button class="btn-danger" onclick="unmarkContrib('${srcId}')">Deshacer aporte</button>`:''}<button class="btn-s" onclick="closeModal()">Cancelar</button><button class="btn-p" onclick="saveContribPay('${srcId}')">Guardar</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+async function saveContribPay(srcId){
+  const wk=getPayWeek(fjWo);const c=fixedContribs.find(x=>x.srcId===srcId);
+  const am=parseFloat(val('cp-am')),dt=val('cp-dt')||today(),nt=val('cp-nt')||'';
+  const msg=document.getElementById('cp-msg');
+  if(!am||am<=0){msg.textContent='Monto inválido';return;}
+  let pay=contribPayments.find(p=>p.srcId===srcId&&p.weekKey===wk.key);
+  if(pay){pay.amount=am;pay.date=dt;pay.note=nt;}
+  else contribPayments.push({id:uid(),srcId,weekKey:wk.key,weekLabel:wk.label,amount:am,expected:c?c.amount:am,date:dt,note:nt});
+  await persist();closeModal();render();
+}
 
 init();
 </script>
